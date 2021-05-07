@@ -1,0 +1,20 @@
+---
+title: "Problem Set 1"
+author: "Patrick Altmeyer"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output: 
+  bookdown::html_document2:
+    code_folding: show
+    number_sections: false
+    toc: true
+    toc_float: true
+bibliography: bib.bib
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+library(data.table)
+```
+
+
