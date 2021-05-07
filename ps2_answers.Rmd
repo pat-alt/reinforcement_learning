@@ -1,5 +1,6 @@
 ---
 title: "Problem Set 1"
+subtitle: "Thompson sampling"
 author: "Patrick Altmeyer"
 date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output: 
@@ -15,6 +16,58 @@ bibliography: bib.bib
 rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
 library(data.table)
+lapply(
+  list.files("R"),
+  function(file) {
+    source(file = file.path("R",file))
+  }
+)
 ```
+
+# An empirical evalutation of Thompson Sampling [@chapelle2011empirical]
+
+First we will simulate the Bernoulli Multi Armed Bandit (MAB) problem.
+
+```{r}
+eps <- 0.1
+K <- 10
+T_ <- 1000
+prob <- c(0.5,rep(0.5-eps,K-1))
+mab <- simulate_mab(prob, horizon = T_)
+```
+
+First, let us set up a grid for the simulation:
+
+```{r}
+t_0 <- 100
+T_ <- 10000
+K <- c(10,100)
+eps <- c(0.02,0.1)
+grid <- data.table(expand.grid(K=K,eps=eps,t=t_0:T_))
+```
+
+```{r}
+grid[,lower_bound:=lb(t,c(0.5,rep(0.5-eps,K-1)),kl_bernoulli),by=.(K,eps,t)]
+# shift to go through origin:
+grid[,lower_bound_adj:=lower_bound - lb(100,c(0.5,rep(0.5-eps,K-1)),kl_bernoulli),by=.(K,eps)]
+```
+
+```{r}
+library(ggplot2)
+library(scales)
+p <- ggplot(data=grid) +
+  geom_line(aes(x=t, y=lower_bound_adj)) +
+  scale_x_log10(
+    breaks = trans_breaks("log10", function(x) 10^x),
+    labels = trans_format("log10", math_format(10^.x))
+  ) +
+  facet_wrap(eps ~ K, scales="free") +
+  labs(
+    x="T",
+    y="Regret"
+  )
+p
+```
+
 
 
