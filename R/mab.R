@@ -2,6 +2,7 @@ library(data.table)
 simulate_mab <- function(prob, horizon=1000) {
   # Generate rewards: ----
   K <- length(prob)
+  v_star <- max(prob)
   rewards <- data.table(
     sapply(
       prob,
@@ -13,6 +14,8 @@ simulate_mab <- function(prob, horizon=1000) {
 
   # Output: ----
   output <- list(
+    prob = prob,
+    v_star = v_star,
     K = K,
     horizon = horizon,
     rewards = rewards

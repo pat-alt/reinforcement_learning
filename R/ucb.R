@@ -4,16 +4,22 @@ ucb <- function(
 ) {
 
   # Parameters: ----
+  unpack(mab) # unpack bandit problem
+  # Uncertainty implemented according to Chapelle et al. (2011):
   uncertainty <- function(action_value,m,delta) {
-    ifelse(m==0, Inf, sqrt((2 * action_value * log(1/delta)) / m) + (2*log(1/delta)) / m) # uncertainty
+    ifelse(m==0, Inf, sqrt((2 * action_value * log(1/delta)) / m) + (2*log(1/delta)) / m)
+  }
+  # If unambiguous, select arm with maximum UCB, else draw uniformly:
+  select_arm <- function(ucb) {
+    ifelse(sum(ucb==max(ucb))==1, which.max(ucb), sample(which(ucb==max(ucb)),1))
   }
 
   # Initialization: ----
-  unpack(mab) # unpack bandit problem
+  T_ <- 1 # iteration counter
   delta <- sqrt(1/T_)
   policy <- rep(0, horizon) # vector to keep track of choices
+  regret <- rep(v_star, horizon) # initialize regret as v_star (maximal true action value)
   times_chosen <- rep(0,K) # count of times that actions were chosen
-  T_ <- 1 # iteration counter
   if (is.null(action_values)) {
     action_values <- rep(0,K)
   }
@@ -23,23 +29,21 @@ ucb <- function(
   while (T_ <= horizon) {
 
     # Select arm:
-    if (sum(ucb==max(ucb))==1) {
-      arm <- which.max(ucb) # select maximal value
-    } else {
-      # should there be no maximum, draw uniformly:
-      arm <- sample(which(ucb==max(ucb)),1)
-    }
-    policy[T_] <- arm # update policy
-    times_chosen[arm] <- times_chosen[arm] + 1 # update counter
+    arm <- select_arm(ucb)
 
     # Observe reward:
     r <- rewards[T_,get(colnames(rewards)[arm])]
 
+    # Update choices in T:
+    policy[T_] <- arm # update policy
+    regret[T_] <- regret[T_] - prob[arm] # compute regret in this period
+    times_chosen[arm] <- times_chosen[arm] + 1 # update counter
+    q <- action_values[arm] # action value at T
+    m <- times_chosen[arm] # times chose at T
+
     # Update parameters and estimates for T+1:
     T_ <- T_ + 1
     delta <- sqrt(1/T_)
-    q <- action_values[arm] # action value at T
-    m <- times_chosen[arm] # times chose at T
     action_values[arm] <- q + 1/m * (r - q) # action value increment
     ucb[arm] <- action_values[arm] + uncertainty(action_values[arm], m, delta) # UCB increment
   }
@@ -47,9 +51,12 @@ ucb <- function(
   # Output: ----
   output <- list(
     policy = policy,
+    regret = regret,
+    times_chosen = times_chosen,
+    action_values = action_values,
     algo = list(
-      upper_confidence_bounds = ucb,
-      times_chosen = times_chosen
+      type = "ucb",
+      upper_confidence_bounds = ucb
     ),
     mab = mab
   )

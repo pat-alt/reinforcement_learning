@@ -17,7 +17,7 @@ rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
 library(data.table)
 lapply(
-  list.files("R"),
+  list.files("R", pattern = "\\.R"),
   function(file) {
     source(file = file.path("R",file))
   }
