@@ -1,4 +1,4 @@
-ucb <- function(
+ucb_R <- function(
   mab,
   action_values = NULL
 ) {
@@ -32,7 +32,7 @@ ucb <- function(
     arm <- select_arm(ucb)
 
     # Observe reward:
-    r <- rewards[T_,get(colnames(rewards)[arm])]
+    r <- generate_rewards(prob)[arm]
 
     # Update choices in T:
     policy[T_] <- arm # update policy

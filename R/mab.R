@@ -1,5 +1,4 @@
-library(data.table)
-simulate_mab <- function(prob, horizon=1000, method="bernoulli") {
+mab <- function(prob, horizon=1000, method="bernoulli") {
   # Parameters: ----
   K <- length(prob)
   v_star <- max(prob)
@@ -22,7 +21,8 @@ simulate_mab <- function(prob, horizon=1000, method="bernoulli") {
     generate_rewards = generate_rewards,
     v_star = v_star,
     K = K,
-    horizon = horizon
+    horizon = horizon,
+    method = method
   )
   class(output) <- "mab"
   return(output)
