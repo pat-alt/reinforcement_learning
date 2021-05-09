@@ -1,3 +1,0 @@
-thompson <- function() {
-
-}
