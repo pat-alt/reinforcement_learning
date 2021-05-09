@@ -1,24 +1,28 @@
 library(data.table)
-simulate_mab <- function(prob, horizon=1000) {
-  # Generate rewards: ----
+simulate_mab <- function(prob, horizon=1000, method="bernoulli") {
+  # Parameters: ----
   K <- length(prob)
   v_star <- max(prob)
-  rewards <- data.table(
-    sapply(
-      prob,
-      function(p) {
-        rbinom(horizon,1,p)
-      }
-    )
-  )
+
+  # Reward generating function: ----
+  if (method=="bernoulli") {
+    generate_rewards <- function(prop) {
+      sapply(
+        prob,
+        function(p) {
+          rbinom(1,1,p)
+        }
+      )
+    }
+  }
 
   # Output: ----
   output <- list(
     prob = prob,
+    generate_rewards = generate_rewards,
     v_star = v_star,
     K = K,
-    horizon = horizon,
-    rewards = rewards
+    horizon = horizon
   )
   class(output) <- "mab"
   return(output)
