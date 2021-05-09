@@ -38,18 +38,26 @@ bernoulli_mab <- mab(prob, horizon = T_)
 
 ## Performance benchmark
 
-Since we are looking at computationally very intensive computations, I have chosen to compile the algorithms in C++ through `Rcpp`.^[This has in part been an exercise for me to get more familiar with `Rcpp`.] This leads to a massive boost in computation performance: Figure \@ref(fig:benchmark) shows the substantial reduction in computing time due to compiling the UCB algorithm through `Rcpp`.
+Since we are looking at computationally very intensive computations, I have chosen to compile the algorithms in C++ through `Rcpp`.^[This has in part been an exercise for me to get more familiar with `Rcpp`.] This leads to a massive boost in computation performance: Figure \@ref(fig:benchmark) shows the substantial reduction in computing time due to compiling the algorithms through `Rcpp`.
 
-```{r benchmark, message=FALSE, warning=FALSE, fig.cap="Reduction in computing time due to compiling the UCB algorithm through `Rcpp`."}
+```{r, eval=FALSE}
 library(microbenchmark)
 library(ggplot2)
 mb <- microbenchmark(
-    "R" = {ucb_R(bernoulli_mab)},
-    "Rcpp" = {ucb_Rcpp(bernoulli_mab)},
+    "UCB (R)" = {ucb_R(bernoulli_mab)},
+    "UCB (Rcpp)" = {ucb_Rcpp(bernoulli_mab)},
+    "Thompson (R)" = {thompson_R(bernoulli_mab)},
+    "Thompson (Rcpp)" = {thompson_Rcpp(bernoulli_mab)},
     times = 100
 )
+saveRDS(mb, file="output/mb.rds")
+```
+
+```{r benchmark, message=FALSE, warning=FALSE, fig.cap="Reduction in computing time due to compiling the UCB algorithm through `Rcpp`."}
+mb <- readRDS("output/mb.rds")
 autoplot(mb)
 ```
+
 
 ## UCB
 
@@ -85,7 +93,7 @@ First, let us set up a grid for the simulation:
 
 ```{r}
 t_0 <- 100
-T_ <- 10000
+T_ <- 10000000
 K <- c(10,100)
 eps <- c(0.02,0.1)
 grid <- data.table(expand.grid(K=K,eps=eps,t=t_0:T_))

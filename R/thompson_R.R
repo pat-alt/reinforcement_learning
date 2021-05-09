@@ -8,7 +8,7 @@ thompson_R <- function(
   unpack(mab) # unpack bandit problem
 
   # If unambiguous, select arm with maximum value, else draw uniformly:
-  select_arm <- function(successes, failures, method=method) {
+  select_arm <- function(successes, failures, method="bernoulli") {
     K <- length(successes)
     if (method=="bernoulli") {
       theta <- rbeta(K,successes,failures)
@@ -17,7 +17,7 @@ thompson_R <- function(
     return(arm)
   }
 
-  posteriour_means <- function(successes, failures, method=method) {
+  posteriour_means <- function(successes, failures, method="bernoulli") {
     K <- length(successes)
     if (method=="bernoulli") {
       theta <- rbeta(K,successes,failures)
