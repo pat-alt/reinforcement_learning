@@ -53,20 +53,25 @@ List ucbRcpp(
 
     // Update choices in T:
     policy[T-1] = arm+1; //update policy
-    double regr = regret[T-1] - prob[arm];
-    regret[T-1] = 1; // compute regret in this period
-    // times_chosen[arm] = times_chosen[arm] + 1; // update counter
-    // double q = action_values[arm]; // action value at T
-    // int m = times_chosen[arm]; // times chose at T
+    // double regr = regret[T-1] - prob[arm];
+    // regret[T-1] = 1.0; // compute regret in this period
+    times_chosen[arm] = times_chosen[arm] + 1; // update counter
+    double q = action_values[arm]; // action value at T
+    int m = times_chosen[arm]; // times chose at T
 
     // Update:
     T++;
-    // double delta = sqrt(1/T);
-    // action_values[arm] = q + 1/m * (r - q); // action value increment
-    // IntegerVector u_arm_v;
-    // u_arm_v = uncertainty(action_values[arm], m, delta);
-    // double u_arm = u_arm_v[0];
-    // ucb[arm] = action_values[arm] + u_arm; // UCB increment
+    double delta = sqrt(1.0/T);
+    action_values[arm] = q + 1.0/m * (r - q); // action value increment
+    NumericVector u_arm_v;
+    // Rcout << "Action value: " << action_values[arm] << "\n";
+    // Rcout << "Delta: " << delta << "\n";
+    // Rcout << "Time: " << T << "\n";
+    // Rcout << "Times chosen: " << m << "\n";
+    u_arm_v = uncertainty(action_values[arm], m, delta);
+    double u_arm = u_arm_v[0];
+    // Rcout << "The value of uncertainty: " << u_arm << "\n";
+    ucb[arm] = action_values[arm] + u_arm; // UCB increment
   }
 
   // Output
