@@ -71,14 +71,14 @@ plot(fitted)
 ```{r}
 eps <- 0.1
 K <- 10
-T_ <- 10000
+T_ <- 1000000
 prob <- c(0.5,rep(0.5-eps,K-1))
 bernoulli_mab <- mab(prob, horizon = T_)
 ```
 
 ```{r}
-fitted_thom <- thompson_R(bernoulli_mab)
-fitted_ucb <- ucb_Rcpp(bernoulli_mab)
+fitted <- thompson_Rcpp(bernoulli_mab)
+plot(fitted)
 ```
 
 First, let us set up a grid for the simulation:

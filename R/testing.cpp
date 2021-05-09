@@ -12,10 +12,13 @@ using namespace Rcpp;
 //
 
 // [[Rcpp::export]]
-NumericVector generate_rewards(int n, double size, NumericVector prob) {
-  NumericVector v = no_init(n);
-  for (int i=0; i<n; i++) {v[i] = as<double>(rbinom(1, size, prob[i]));}
-  return(v);
+NumericVector posteriour_means(IntegerVector successes, IntegerVector failures, String method="bernoulli") {
+  int K=successes.size();
+  NumericVector theta = no_init(K);
+  if (method=="bernoulli") {
+    for (int i=0; i<K; i++) {theta[i] = as<double>(rbeta(1, successes[i], failures[i]));}
+  }
+  return(theta);
 }
 
 // You can include R code blocks in C++ files processed with sourceCpp
@@ -24,5 +27,7 @@ NumericVector generate_rewards(int n, double size, NumericVector prob) {
 //
 
 /*** R
-generate_rewards(length(prob),1,prob)
+successes <- c(100,1,1)
+failures <- c(1,1,100)
+posteriour_means(successes, failures)
 */
