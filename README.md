@@ -1,5 +1,3 @@
-README
-================
 
 ## Multi-Armed Bandit problems
 
