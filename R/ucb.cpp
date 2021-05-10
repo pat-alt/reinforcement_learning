@@ -1,5 +1,4 @@
 #include <Rcpp.h>
-#include <random>
 using namespace Rcpp;
 
 // Helper function to generate rewards:
@@ -70,8 +69,6 @@ List ucb(
   // Recursion:
   while(T <= horizon) {
 
-    // Rcout << "Round: " << T << "\n";
-
     // Select arm:
     int arm=select_arm(ucb);
 
@@ -106,6 +103,36 @@ List ucb(
   return output;
 }
 
+// Function to run simulation:
+// [[Rcpp::export]]
+NumericVector sim_ucb(
+    double n,
+    int horizon,
+    double v_star,
+    int K,
+    NumericVector prob,
+    String method="bernoulli",
+    Nullable<NumericVector> action_values_ = R_NilValue
+) {
+  NumericVector regret (horizon); // allocate memory
+  double sim_counter=1.0; // counter
+  while (sim_counter <= n) {
+    // Run algorithm:
+    List policy = ucb(
+      horizon,
+      v_star,
+      K,
+      prob = prob,
+      method = method,
+      action_values_ = action_values_
+    );
+    NumericVector reg_sim=policy["regret"];
+    regret = regret + reg_sim / n; // increment regret
+    sim_counter++;
+  }
+  return(regret);
+}
+
 // You can include R code blocks in C++ files processed with sourceCpp
 // (useful for testing and development). The R code will be automatically
 // run after the compilation.
@@ -115,7 +142,8 @@ List ucb(
 // prob <- c(0.5,rep(0.4,9))
 // bernoulli_mab <- mab(prob, horizon = 10000)
 // unpack(bernoulli_mab)
-// ucb(
+// sim_ucb(
+//   n = 500,
 //   horizon = horizon,
 //   v_star = v_star,
 //   K = K,

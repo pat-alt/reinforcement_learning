@@ -12,24 +12,16 @@ using namespace Rcpp;
 //   http://gallery.rcpp.org/
 //
 
+// Helper function to select arm:
 // [[Rcpp::export]]
-NumericVector generate_rewards(NumericVector prob, String method="bernoulli", int seed=42) {
-  int n = prob.size();
-  NumericVector v = no_init(n);
-  // Random number generator:
-  std::default_random_engine generator;
-  // if (seed_.isNotNull()) {
-  //   int seed(seed_); // casting to underlying type
-  //   std::default_random_engine generator(seed);
-  // }
-  // Bernoulli rewards:
+int select_arm(IntegerVector successes, IntegerVector failures, String method="bernoulli") {
+  int K=successes.size();
+  NumericVector theta = no_init(K);
   if (method=="bernoulli") {
-    for (int i=0; i<n; i++) {
-      std::bernoulli_distribution distribution(prob[i]);
-      v[i] = distribution(generator);
-    }
+    for (int i=0; i<K; i++) {theta[i] = as<double>(rbeta(1, successes[i], failures[i]));}
   }
-  return(v);
+  int arm = which_max(theta);
+  return arm;
 }
 
 // You can include R code blocks in C++ files processed with sourceCpp
@@ -38,6 +30,7 @@ NumericVector generate_rewards(NumericVector prob, String method="bernoulli", in
 //
 
 /*** R
-prob <- c(0.5,rep(0.4,9))
+successes <- c(100,1,1)
+failures <- c(1,1,100)
 generate_rewards(prob)
 */

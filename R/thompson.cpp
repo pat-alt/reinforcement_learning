@@ -105,23 +105,55 @@ List thompson(
   return output;
 }
 
+// Function to run simulation:
+// [[Rcpp::export]]
+NumericVector sim_thompson(
+    double n,
+    int horizon,
+    double v_star,
+    int K,
+    NumericVector prob,
+    String method="bernoulli",
+    Nullable<IntegerVector> successes_ = R_NilValue,
+    Nullable<IntegerVector> failures_ = R_NilValue
+) {
+  NumericVector regret (horizon); // allocate memory
+  double sim_counter=1.0; // counter
+  while (sim_counter <= n) {
+    // Run algorithm:
+    List policy = thompson(
+      horizon,
+      v_star,
+      K,
+      prob,
+      method,
+      successes_,
+      failures_
+    );
+    NumericVector reg_sim=policy["regret"];
+    regret = regret + reg_sim / n; // increment regret
+    sim_counter++;
+  }
+  return(regret);
+}
 
 // You can include R code blocks in C++ files processed with sourceCpp
 // (useful for testing and development). The R code will be automatically
 // run after the compilation.
-//
-//
-// /*** R
-// prob <- c(0.5,rep(0.4,9))
-// bernoulli_mab <- mab(prob, horizon = 10000)
-// unpack(bernoulli_mab)
-// thompson(
-//   horizon = horizon,
-//   v_star = v_star,
-//   K = K,
-//   prob = prob,
-//   method = method,
-//   successes_ = NULL,
-//   failures_ = NULL
-// )
-// */
+
+
+/*** R
+prob <- c(0.5,rep(0.4,9))
+bernoulli_mab <- mab(prob, horizon = 10000)
+unpack(bernoulli_mab)
+sim_thompson(
+  n = 10,
+  horizon = horizon,
+  v_star = v_star,
+  K = K,
+  prob = prob,
+  method = method,
+  successes_ = NULL,
+  failures_ = NULL
+)
+*/
