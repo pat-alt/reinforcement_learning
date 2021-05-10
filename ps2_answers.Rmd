@@ -138,32 +138,99 @@ knitr::include_graphics("www/mb.png")
 
 ## Simulations
 
-First, let us set up a grid for the simulation:
+First, let us set up a grid for the simulation, which will use both to draw the different parameters ($K$, $\varepsilon$). 
 
-```{r, eval=F}
-t_0 <- 100
-T_ <- 10000000
+```{r}
+library(data.table)
+t_0 <- 1
+T_ <- 1e6
 K <- c(10,100)
 eps <- c(0.02,0.1)
-grid <- data.table(expand.grid(K=K,eps=eps,t=t_0:T_))
+algos <- list(
+  ucb = ucb_Rcpp,
+  thompson = thompson_Rcpp
+)
+param_grid <- CJ(K=K,eps=eps,algo=names(algos))
 ```
 
-```{r, eval=FALSE}
-grid[,lower_bound:=lb(t,c(0.5,rep(0.5-eps,K-1)),kl_bernoulli),by=.(K,eps,t)]
-# shift to go through origin:
-grid[,lower_bound_adj:=lower_bound - lb(100,c(0.5,rep(0.5-eps,K-1)),kl_bernoulli),by=.(K,eps)]
+We will also set up a corresponding table to store the results from the simulation and eventually plot them. This involves performing a cross-join across the different parameters and the trials ($T=[1,`r T_`]$), which is efficiently implemented in `data.table`.
+
+```{r}
+simulation <- CJ(K=K,eps=eps,T_=t_0:T_)
 ```
+
+### Lower bound
+
+The first variable we will add to `simulation` is the lower bound for the different parameter specifications. The lower bound is implemented according to the formulation in @chapelle2011empirical:
+
+```{r code=readLines("R/lb.R")}
+```
+
+Next we apply this function for each $K$ and $\varepsilon$. Following @chapelle2011empirical we will shift the lower bound such that it passes through the origin at $T=100$. Again these computation can be done very efficiently using `data.table`.
+
+```{r}
+simulation[,value:=lb(T_,c(0.5,rep(0.5-eps,K-1)),kl_bernoulli) - lb(100,c(0.5,rep(0.5-eps,K-1)),kl_bernoulli),by=.(K,eps)]
+simulation[,variable:="lower_bound"]
+```
+
+### Algorithms
+
+```{r, eval=FALSE}
+n_sim <- 10 # number of simulations
+simulation <- rbind(
+  simulation,
+  rbindlist(
+    lapply(
+      1:nrow(param_grid),
+      function(param_spec) {
+        list2env(c(param_grid[param_spec,]), envir = environment()) # unpack variables
+        prob <- c(0.5,rep(0.5-eps,K-1)) # compute corresponding probabilities
+        bernoulli_mab <- mab(prob, horizon = T_) # generate MAB
+        # initialize table to store output for parameter specification:
+        simulation_spec <- data.table(K=K, eps=eps, T_=t_0:T_, value=0, variable=algo) 
+        regret <- rep(0,T_) # vectorize
+        sim_counter <- 1
+        while (sim_counter <= n_sim) {
+          set.seed(sim_counter)
+          policy <- algos[[algo]](bernoulli_mab)
+          regret <- regret + 1/n_sim * policy$regret # increment regret
+          sim_counter <- sim_counter + 1
+        }
+        simulation_spec[,value:=cumsum(regret)] # store results
+        rm(sim_counter)
+        return(simulation_spec)
+      }
+    )
+  )
+)
+saveRDS(simulation, file="output/simulation.rds")
+```
+
+### Final chart
 
 ```{r, eval=FALSE}
 library(ggplot2)
 library(scales)
-p <- ggplot(data=grid) +
-  geom_line(aes(x=t, y=lower_bound_adj)) +
+simulation <- readRDS("output/simulation.rds")
+bin_size <- 1000
+dt_plot <- copy(simulation)
+dt_plot <- dt_plot[,bin:=(((T_) %/% bin_size))*bin_size]
+dt_plot[,bin_idx:=1:.N,by=.(K,eps,variable,bin)]
+dt_plot <- dt_plot[bin_idx==1 | (bin==0 & bin_idx %in% round(seq(100,bin_size-bin_size/4,length.out=4)))]
+dt_plot[,bin_idx:=NULL]
+dt_plot[,bin:=NULL]
+dt_plot[,K:=sprintf("K==%i",K)]
+dt_plot[,eps:=sprintf("epsilon==%0.2f",eps)]
+dt_plot[,variable:=as.factor(variable)]
+levels(dt_plot$variable) <- c("Lower bound", "Thompson", "UCB")
+p <- ggplot(data=dt_plot[T_>=100]) +
+  geom_line(aes(x=T_, y=value, colour=variable)) +
   scale_x_log10(
     breaks = trans_breaks("log10", function(x) 10^x),
     labels = trans_format("log10", math_format(10^.x))
   ) +
-  facet_wrap(eps ~ K, scales="free") +
+  scale_color_discrete(name="Variable:") +
+  facet_wrap(eps ~ K, scales="free", labeller = label_parsed) +
   labs(
     x="T",
     y="Regret"
