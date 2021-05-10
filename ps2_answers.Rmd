@@ -143,12 +143,12 @@ First, let us set up a grid for the simulation, which will use both to draw the 
 ```{r, eval=F}
 library(data.table)
 t_0 <- 1
-T_ <- 1e6
+T_ <- 1e7
 K <- c(10,100)
 eps <- c(0.02,0.1)
 algos <- list(
-  ucb = ucb_Rcpp,
-  thompson = thompson_Rcpp
+  ucb = sim_ucb,
+  thompson = sim_thompson
 )
 param_grid <- CJ(K=K,eps=eps,algo=names(algos))
 ```
@@ -186,24 +186,24 @@ simulation <- rbind(
         list2env(c(param_grid[param_spec,]), envir = environment()) # unpack variables
         prob <- c(0.5,rep(0.5-eps,K-1)) # compute corresponding probabilities
         bernoulli_mab <- mab(prob, horizon = T_) # generate MAB
+        unpack(bernoulli_mab) # unpack objects
         # initialize table to store output for parameter specification:
         simulation_spec <- data.table(K=K, eps=eps, T_=t_0:T_, value=0, variable=algo) 
-        regret <- rep(0,T_) # vectorize
-        sim_counter <- 1
-        while (sim_counter <= n_sim) {
-          set.seed(sim_counter)
-          policy <- algos[[algo]](bernoulli_mab)
-          regret <- regret + 1/n_sim * policy$regret # increment regret
-          sim_counter <- sim_counter + 1
-        }
+        # run simulation:
+        regret <- algos[[algo]](
+          n = n_sim,
+          horizon = horizon,
+          v_star = v_star,
+          K = K,
+          prob = prob
+        )
         simulation_spec[,value:=cumsum(regret)] # store results
-        rm(sim_counter)
         return(simulation_spec)
       }
     )
   )
 )
-saveRDS(simulation, file="output/simulation.rds")
+#saveRDS(simulation, file="output/simulation.rds")
 ```
 
 ### Final chart
@@ -212,7 +212,7 @@ saveRDS(simulation, file="output/simulation.rds")
 library(ggplot2)
 library(scales)
 simulation <- readRDS("output/simulation.rds")
-bin_size <- 1000
+bin_size <- ifelse(T_/1000>1,T_/1000,1)
 dt_plot <- copy(simulation)
 dt_plot <- dt_plot[,bin:=(((T_) %/% bin_size))*bin_size]
 dt_plot[,bin_idx:=1:.N,by=.(K,eps,variable,bin)]

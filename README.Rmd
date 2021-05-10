@@ -1,0 +1,23 @@
+---
+title: "README"
+output: github_document
+bibliography: bib.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Multi-Armed Bandit problems
+
+[Problem Set 2](ps2_answers.html) replicates an empirical evaluation of Thompson Sampling [@chapelle2011empirical]. To run the simulation from the command line, simply execute the command below:
+
+```{bash, eval=F}
+git clone https://github.com/pat-alt/reinforcement_learning.git
+cd reinforcement_learning
+...
+```
+
+## References
+
+

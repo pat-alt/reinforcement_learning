@@ -140,20 +140,20 @@ NumericVector sim_thompson(
 // You can include R code blocks in C++ files processed with sourceCpp
 // (useful for testing and development). The R code will be automatically
 // run after the compilation.
-
-
-/*** R
-prob <- c(0.5,rep(0.4,9))
-bernoulli_mab <- mab(prob, horizon = 10000)
-unpack(bernoulli_mab)
-sim_thompson(
-  n = 10,
-  horizon = horizon,
-  v_star = v_star,
-  K = K,
-  prob = prob,
-  method = method,
-  successes_ = NULL,
-  failures_ = NULL
-)
-*/
+//
+//
+// /*** R
+// prob <- c(0.5,rep(0.4,9))
+// bernoulli_mab <- mab(prob, horizon = 10000)
+// unpack(bernoulli_mab)
+// sim_thompson(
+//   n = 10,
+//   horizon = horizon,
+//   v_star = v_star,
+//   K = K,
+//   prob = prob,
+//   method = method,
+//   successes_ = NULL,
+//   failures_ = NULL
+// )
+// */
