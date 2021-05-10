@@ -1,4 +1,5 @@
 #include <Rcpp.h>
+#include <random>
 using namespace Rcpp;
 
 // This is a simple example of exporting a C++ function to R. You can
@@ -12,13 +13,23 @@ using namespace Rcpp;
 //
 
 // [[Rcpp::export]]
-NumericVector posteriour_means(IntegerVector successes, IntegerVector failures, String method="bernoulli") {
-  int K=successes.size();
-  NumericVector theta = no_init(K);
+NumericVector generate_rewards(NumericVector prob, String method="bernoulli", int seed=42) {
+  int n = prob.size();
+  NumericVector v = no_init(n);
+  // Random number generator:
+  std::default_random_engine generator;
+  // if (seed_.isNotNull()) {
+  //   int seed(seed_); // casting to underlying type
+  //   std::default_random_engine generator(seed);
+  // }
+  // Bernoulli rewards:
   if (method=="bernoulli") {
-    for (int i=0; i<K; i++) {theta[i] = as<double>(rbeta(1, successes[i], failures[i]));}
+    for (int i=0; i<n; i++) {
+      std::bernoulli_distribution distribution(prob[i]);
+      v[i] = distribution(generator);
+    }
   }
-  return(theta);
+  return(v);
 }
 
 // You can include R code blocks in C++ files processed with sourceCpp
@@ -27,7 +38,6 @@ NumericVector posteriour_means(IntegerVector successes, IntegerVector failures, 
 //
 
 /*** R
-successes <- c(100,1,1)
-failures <- c(1,1,100)
-posteriour_means(successes, failures)
+prob <- c(0.5,rep(0.4,9))
+generate_rewards(prob)
 */

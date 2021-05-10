@@ -236,7 +236,10 @@ p <- ggplot(data=dt_plot[T_>=100]) +
     y="Regret"
   )
 p
+ggsave("www/ps1_chart.png", width = 6, height = 4)
 ```
 
-
+```{r chart, fig.cap="Comparison of algorithms as in @chapelle2011empirical."}
+knitr::include_graphics("www/ps1_chart.png")
+```
 
