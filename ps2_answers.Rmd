@@ -140,7 +140,7 @@ knitr::include_graphics("www/mb.png")
 
 First, let us set up a grid for the simulation, which will use both to draw the different parameters ($K$, $\varepsilon$). 
 
-```{r}
+```{r, eval=F}
 library(data.table)
 t_0 <- 1
 T_ <- 1e6
@@ -155,7 +155,7 @@ param_grid <- CJ(K=K,eps=eps,algo=names(algos))
 
 We will also set up a corresponding table to store the results from the simulation and eventually plot them. This involves performing a cross-join across the different parameters and the trials ($T=[1,`r T_`]$), which is efficiently implemented in `data.table`.
 
-```{r}
+```{r, eval=F}
 simulation <- CJ(K=K,eps=eps,T_=t_0:T_)
 ```
 
@@ -168,7 +168,7 @@ The first variable we will add to `simulation` is the lower bound for the differ
 
 Next we apply this function for each $K$ and $\varepsilon$. Following @chapelle2011empirical we will shift the lower bound such that it passes through the origin at $T=100$. Again these computation can be done very efficiently using `data.table`.
 
-```{r}
+```{r, eval=F}
 simulation[,value:=lb(T_,c(0.5,rep(0.5-eps,K-1)),kl_bernoulli) - lb(100,c(0.5,rep(0.5-eps,K-1)),kl_bernoulli),by=.(K,eps)]
 simulation[,variable:="lower_bound"]
 ```
@@ -243,3 +243,4 @@ ggsave("www/ps1_chart.png", width = 6, height = 4)
 knitr::include_graphics("www/ps1_chart.png")
 ```
 
+# References
