@@ -177,6 +177,7 @@ simulation[,variable:="lower_bound"]
 
 ```{r, eval=FALSE}
 n_sim <- 10 # number of simulations
+start <- Sys.time()
 simulation <- rbind(
   simulation,
   rbindlist(
@@ -190,6 +191,7 @@ simulation <- rbind(
         # initialize table to store output for parameter specification:
         simulation_spec <- data.table(K=K, eps=eps, T_=t_0:T_, value=0, variable=algo) 
         # run simulation:
+        message(sprintf("Starting with: %s, %i arms, eps=%0.2f", algo, K, eps))
         regret <- algos[[algo]](
           n = n_sim,
           horizon = horizon,
@@ -197,13 +199,16 @@ simulation <- rbind(
           K = K,
           prob = prob
         )
+        message(sprintf("Done with: %s, %i arms, eps=%0.2f", algo, K, eps))
         simulation_spec[,value:=cumsum(regret)] # store results
         return(simulation_spec)
       }
     )
   )
 )
-#saveRDS(simulation, file="output/simulation.rds")
+time_passed <- Sys.time() - start
+print(time_passed)
+saveRDS(simulation, file="results/simulation.rds")
 ```
 
 ### Final chart
@@ -211,12 +216,12 @@ simulation <- rbind(
 ```{r, eval=FALSE}
 library(ggplot2)
 library(scales)
-simulation <- readRDS("output/simulation.rds")
+dt_plot <- readRDS("results/simulation.rds")
 bin_size <- ifelse(T_/1000>1,T_/1000,1)
-dt_plot <- copy(simulation)
+n_start <- 50
 dt_plot <- dt_plot[,bin:=(((T_) %/% bin_size))*bin_size]
 dt_plot[,bin_idx:=1:.N,by=.(K,eps,variable,bin)]
-dt_plot <- dt_plot[bin_idx==1 | (bin==0 & bin_idx %in% round(seq(100,bin_size-bin_size/4,length.out=4)))]
+dt_plot <- dt_plot[bin_idx==1 | (bin==0 & bin_idx %in% round(seq(100,bin_size-bin_size/n_start,length.out=n_start)))]
 dt_plot[,bin_idx:=NULL]
 dt_plot[,bin:=NULL]
 dt_plot[,K:=sprintf("K==%i",K)]
