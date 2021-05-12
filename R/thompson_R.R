@@ -1,35 +1,32 @@
 #' Thompson Sampling
 #'
 #' @param mab An object of class `mab`.
+#' @param update_every Integer specifying length of interval after which parameters will be updated.
 #' @param successes Initial success counts (optional).
 #' @param failures Initial failure counts (optional).
 #'
 #' @author Patrick Altmeyer
 thompson_R <- function(
   mab,
+  update_every = 1,
   successes = NULL,
   failures = NULL
 ) {
 
   # Parameters: ----
   unpack(mab) # unpack bandit problem
-
-  # If unambiguous, select arm with maximum value, else draw uniformly:
-  select_arm <- function(successes, failures, method="bernoulli") {
-    K <- length(successes)
-    if (method=="bernoulli") {
-      theta <- rbeta(K,successes,failures)
-      arm <- which.max(theta)
-    }
-    return(arm)
-  }
-
-  posteriour_means <- function(successes, failures, method="bernoulli") {
+  # Function to compute posterior means (action values):
+  posterior_means <- function(successes, failures, method="bernoulli") {
     K <- length(successes)
     if (method=="bernoulli") {
       theta <- rbeta(K,successes,failures)
     }
     return(theta)
+  }
+  # Function to select based on action values:
+  select_arm <- function(theta, method="bernoulli") {
+    arm <- which.max(theta)
+    return(arm)
   }
 
   # Initialization: ----
@@ -43,12 +40,13 @@ thompson_R <- function(
   if (is.null(failures)) {
     failures <- rep(1,K) # initialize failure count
   }
+  theta <- posterior_means(successes = successes, failures = failures) # initilize action values
 
   # Recursion: ----
   while (T_ <= horizon) {
 
     # Select arm:
-    arm <- select_arm(successes = successes, failures = failures)
+    arm <- select_arm(theta = theta)
 
     # Observe reward:
     r <- generate_rewards(prob)[arm]
@@ -57,13 +55,17 @@ thompson_R <- function(
     policy[T_] <- arm # update policy
     regret[T_] <- regret[T_] - prob[arm] # compute regret in this period
     times_chosen[arm] <- times_chosen[arm] + 1 # update counter
-
-    # Update parameters and estimates for T+1:
-    T_ <- T_ + 1
     if (r==1) {
       successes[arm] <- successes[arm] + 1
     } else {
       failures[arm] <- failures[arm] + 1
+    }
+
+    # Update parameters and estimates for T+1:
+    T_ <- T_ + 1
+    update_this_round <- T_ %/% update_every == T_ / update_every # update only if modulus equal to ratio
+    if (update_this_round) {
+      theta <- posterior_means(successes = successes, failures = failures)
     }
 
   }
@@ -73,7 +75,7 @@ thompson_R <- function(
     policy = policy,
     regret = regret,
     times_chosen = times_chosen,
-    action_values = posteriour_means(successes, failures),
+    action_values = theta,
     algo = list(
       type = "thompson",
       successes = successes,

@@ -76,7 +76,7 @@ Before moving on to Thompson sampling, let us run a single game to see how the a
 ```{r}
 eps <- 0.1
 K <- 10
-T_ <- 1000000
+T_ <- 10000
 prob <- c(0.5,rep(0.5-eps,K-1))
 bernoulli_mab <- mab(prob, horizon = T_)
 ```
