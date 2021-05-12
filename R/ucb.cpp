@@ -117,6 +117,7 @@ NumericVector sim_ucb(
   NumericVector regret (horizon); // allocate memory
   double sim_counter=1.0; // counter
   while (sim_counter <= n) {
+    Rcout << sim_counter << "/" << n << "\n";
     // Run algorithm:
     List policy = ucb(
       horizon,

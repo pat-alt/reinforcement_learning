@@ -176,7 +176,7 @@ simulation[,variable:="lower_bound"]
 ### Algorithms
 
 ```{r, eval=FALSE}
-n_sim <- 10 # number of simulations
+n_sim <- 25 # number of simulations
 start <- Sys.time()
 simulation <- rbind(
   simulation,
@@ -191,7 +191,14 @@ simulation <- rbind(
         # initialize table to store output for parameter specification:
         simulation_spec <- data.table(K=K, eps=eps, T_=t_0:T_, value=0, variable=algo) 
         # run simulation:
-        message(sprintf("Starting with: %s, %i arms, eps=%0.2f", algo, K, eps))
+        message(sprintf(
+          "Starting with: %s, %i arms, eps=%0.2f, T=%i, n_sim=%i", 
+          algo, 
+          K, 
+          eps,
+          T_,
+          n_sim
+        ))
         regret <- algos[[algo]](
           n = n_sim,
           horizon = horizon,
@@ -199,7 +206,14 @@ simulation <- rbind(
           K = K,
           prob = prob
         )
-        message(sprintf("Done with: %s, %i arms, eps=%0.2f", algo, K, eps))
+        message(sprintf(
+          "Done with: %s, %i arms, eps=%0.2f, T=%i, n_sim=%i", 
+          algo, 
+          K, 
+          eps,
+          T_,
+          n_sim
+        ))
         simulation_spec[,value:=cumsum(regret)] # store results
         return(simulation_spec)
       }
@@ -218,7 +232,7 @@ library(ggplot2)
 library(scales)
 dt_plot <- readRDS("results/simulation.rds")
 bin_size <- ifelse(T_/1000>1,T_/1000,1)
-n_start <- 50
+n_start <- 500
 dt_plot <- dt_plot[,bin:=(((T_) %/% bin_size))*bin_size]
 dt_plot[,bin_idx:=1:.N,by=.(K,eps,variable,bin)]
 dt_plot <- dt_plot[bin_idx==1 | (bin==0 & bin_idx %in% round(seq(100,bin_size-bin_size/n_start,length.out=n_start)))]
@@ -235,10 +249,11 @@ p <- ggplot(data=dt_plot[T_>=100]) +
     labels = trans_format("log10", math_format(10^.x))
   ) +
   scale_color_discrete(name="Variable:") +
-  facet_wrap(eps ~ K, scales="free", labeller = label_parsed) +
+  facet_wrap(K ~ eps, scales="free", labeller = label_parsed) +
   labs(
     x="T",
-    y="Regret"
+    y="Regret",
+    title=sprintf("Number of simulations: %i", n_sim)
   )
 p
 ggsave("www/ps1_chart.png", width = 6, height = 4)
