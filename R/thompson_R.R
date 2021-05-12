@@ -1,3 +1,10 @@
+#' Thompson Sampling
+#'
+#' @param mab An object of class `mab`.
+#' @param successes Initial success counts (optional).
+#' @param failures Initial failure counts (optional).
+#'
+#' @author Patrick Altmeyer
 thompson_R <- function(
   mab,
   successes = NULL,

@@ -1,3 +1,10 @@
+#' Multi-Armed Bandit
+#'
+#' @param prob Bernoulli probabilities.
+#' @param horizon Number of trials.
+#' @param method Method to use. Only Bernoulli is implemented.
+#'
+#' @author Patrick Altmeyer
 mab <- function(prob, horizon=1000, method="bernoulli") {
   # Parameters: ----
   K <- length(prob)

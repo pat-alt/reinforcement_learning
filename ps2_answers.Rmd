@@ -6,7 +6,7 @@ date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output: 
   bookdown::html_document2:
     code_folding: show
-    number_sections: false
+    number_sections: true
     toc: true
     toc_float: true
 bibliography: bib.bib
@@ -49,14 +49,6 @@ In the end I have therefore opted for the second approach. The `mab` function be
 ```{r code=readLines("R/mab.R")}
 ```
 
-```{r}
-eps <- 0.1
-K <- 10
-T_ <- 1000
-prob <- c(0.5,rep(0.5-eps,K-1))
-bernoulli_mab <- mab(prob, horizon = T_)
-```
-
 ## UCB
 
 The code chunk below shows the implementation of the UCB algorithm in R. This implementation does not make use of `Rcpp` and is only shown for illustrative purposes. The code is thoroughly commented, so I here only talk to the high-level details. Like all other algorithms that we will see, `ucb_R` takes an object of class `mab` as its main input. The optional `action_values` argument can be used to supply initial values, should we have prior knowledge. By default all action values are initialized as zero. Regret is computed in each period as $V^*-Q(a_T)$ where $V^*$ is the optimal choice and $Q(a_T)$ represents the true reward probability of the arm chosen in period $T$. In particular, following @chapelle2011empirical here we have $V^*=0.5=Q(a^{(1)})$ and $Q(a^{(j)})=0.5-\varepsilon$ for all $j\ne1$, $j \in [1,K]$. It is easy to see that with this implementation, we can simply take the cumulative sum of the resulting vector of single-period regret to recover the total cumulative regret in period $T$ as specified in @auer2002finite, namely
@@ -89,7 +81,7 @@ prob <- c(0.5,rep(0.5-eps,K-1))
 bernoulli_mab <- mab(prob, horizon = T_)
 ```
 
-Below we use the `Rcpp` version of the UCB algorithm to fit our model. For $T=`r T_`$ it only takes a few seconds to solve the problem. The `ucb_Rcpp` function is a wrapper function that executes the compiled `C++` code under the hood and returns a `policy` object. The `C++` will not be discussed here but can be found in `R/ucb.cpp`. For $K=`r K`$ and $\varepsilon=`r eps`$, the cumulative regret after $T=`r T_`$ periods is around the same levels as the average cumulative regret for that specification in @chapelle2011empirical (Figure \@ref(fig:ucb-ex)).
+Below we use the `Rcpp` version of the UCB algorithm to fit our model. For $T=`r T_`$ it only takes a few seconds to solve the problem. The `ucb_Rcpp` function is a wrapper function that executes the compiled `C++` code under the hood and returns a `policy` object. The `C++` code will not be discussed here but details can be found in the [annex](#annex). For $K=`r K`$ and $\varepsilon=`r eps`$, the cumulative regret after $T=`r T_`$ periods is around the same levels as the average cumulative regret for that specification in @chapelle2011empirical (Figure \@ref(fig:ucb-ex)).
 
 ```{r ucb-ex, fig.cap="An example run of the UCB algorithm."}
 set.seed(42)
@@ -116,7 +108,7 @@ plot(fitted)
 
 ## Performance benchmark
 
-The choice to compile the algorithms in C++ through `Rcpp` was driven by the fact that we are looking at computationally very intensive simulations.^[It has in part been an exercise for me to get more familiar with `Rcpp`.] This implementation leads to massive performance boosts: Figure \@ref(fig:benchmark) shows a micro benchmark of the computing times of the different implementation.
+The choice to compile the algorithms in C++ through `Rcpp` was driven by the fact that we are looking at computationally very intensive simulations.^[It has in part been an exercise for me to get more familiar with `Rcpp`.] This implementation leads to massive performance boosts: Figure \@ref(fig:benchmark) shows a micro benchmark of the computing times of the different implementations.
 
 ```{r, eval=FALSE}
 library(microbenchmark)
@@ -132,13 +124,13 @@ p <- autoplot(mb)
 ggsave("www/mb.png", width = 6, height = 4)
 ```
 
-```{r benchmark, message=FALSE, warning=FALSE, fig.cap="Reduction in computing time due to compiling through `Rcpp`."}
+```{r benchmark, message=FALSE, warning=FALSE, fig.cap="Reduction in computing time due to compiling through `Rcpp`.", echo=FALSE}
 knitr::include_graphics("www/mb.png")
 ```
 
 ## Simulations
 
-First, let us set up a grid for the simulation, which will use both to draw the different parameters ($K$, $\varepsilon$). 
+First, let us set up a grid for the simulation, which will use both to draw the different parameters ($K$, $\varepsilon$):
 
 ```{r, eval=F}
 library(data.table)
@@ -153,6 +145,8 @@ algos <- list(
 param_grid <- CJ(K=K,eps=eps,algo=names(algos))
 ```
 
+The functions going into the list `algos` are compiled through `Rcpp` to also speed up that part of the process. Details can again be found in the [annex](#annex).
+
 We will also set up a corresponding table to store the results from the simulation and eventually plot them. This involves performing a cross-join across the different parameters and the trials ($T=[1,`r T_`]$), which is efficiently implemented in `data.table`.
 
 ```{r, eval=F}
@@ -166,7 +160,7 @@ The first variable we will add to `simulation` is the lower bound for the differ
 ```{r code=readLines("R/lb.R")}
 ```
 
-Next we apply this function for each $K$ and $\varepsilon$. Following @chapelle2011empirical we will shift the lower bound such that it passes through the origin at $T=100$. Again these computation can be done very efficiently using `data.table`.
+Next we apply this function for each $K$ and $\varepsilon$. Following @chapelle2011empirical we will shift the lower bound such that it passes through the origin at $T=100$. Again these computation can be done very efficiently using `data.table`:
 
 ```{r, eval=F}
 simulation[,value:=lb(T_,c(0.5,rep(0.5-eps,K-1)),kl_bernoulli) - lb(100,c(0.5,rep(0.5-eps,K-1)),kl_bernoulli),by=.(K,eps)]
@@ -175,8 +169,13 @@ simulation[,variable:="lower_bound"]
 
 ### Algorithms
 
-```{r, eval=FALSE}
+```{r, echo=FALSE}
 n_sim <- 25 # number of simulations
+```
+
+Now let us finally turn to the simulation exercise. While the code `Rcpp` code runs fast, running multiple simulations of Bernoulli bandits with $K=100$ arms over $T=10^7$ trials is computationally challenging.^[On my personal device, an old single-core MacBook Pro '13 from mid-2010, these computations took 13 hours over all.] The code chunk below was used to run `n_sim`$=`r n_sim`$ simulations as in @chapelle2011empirical. While the authors chose to only update parameters every 100 iterations presumably to speed up computations, we do not use that simplification here and instead update every round. 
+
+```{r, eval=FALSE}
 start <- Sys.time()
 simulation <- rbind(
   simulation,
@@ -227,7 +226,9 @@ saveRDS(simulation, file="results/simulation.rds")
 
 ### Final chart
 
-```{r, eval=FALSE}
+The results are consistent with the findings in @chapelle2011empirical: for all parameter specifications both the UCB and Thompson Sampling attain sub-linearity before reaching $10^7$ trials. As expected, Thompson Sampling consistently outperforms UCB. Compared to the results in @chapelle2011empirical, both the UCB and to a lesser extent Thompson Sampling yield somewhat lower absolute levels of cumulative regret for any given $T$. This is likely due to the fact that here we have updated parameters continuously in each round, while @chapelle2011empirical only update every 100 trials.
+
+```{r, eval=FALSE, echo=FALSE}
 library(ggplot2)
 library(scales)
 dt_plot <- readRDS("results/simulation.rds")
@@ -259,8 +260,30 @@ p
 ggsave("www/ps1_chart.png", width = 6, height = 4)
 ```
 
-```{r chart, fig.cap="Comparison of algorithms as in @chapelle2011empirical."}
+```{r chart, fig.cap="Comparison of algorithms as in @chapelle2011empirical.", echo=FALSE}
 knitr::include_graphics("www/ps1_chart.png")
 ```
 
-# References
+# References {-}
+
+<div id="refs"></div>
+
+# (APPENDIX) Annex {- #annex}
+
+# `Rcpp` code
+
+## UCB
+
+```{Rcpp code=readLines("R/ucb.cpp"), eval=FALSE}
+```
+
+## Thompson Sampling
+
+```{Rcpp code=readLines("R/thompson.cpp"), eval=FALSE}
+```
+
+# Session info
+
+```{r}
+utils::sessionInfo()
+```

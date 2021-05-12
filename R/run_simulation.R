@@ -1,5 +1,14 @@
+#' Simulation
+#'
+#' @param n_sim Number of simulations.
+#' @param horizon Number of trials.
+#' @param K Number of arms.
+#' @param eps Difference between best and worst action values.
+#' @param algos Compiled simulation functions for different algorithms.
+#'
+#' @author Patrick Altmeyer
 run_simulation <- function(
-  n_sim, horizon,
+  n_sim=5, horizon=100000,
   K=c(10,100),
   eps=c(0.02,0.1),
   algos=list(
@@ -22,6 +31,7 @@ run_simulation <- function(
   simulation[,variable:="lower_bound"]
 
   # Run simulation: ----
+  start <- Sys.time()
   simulation <- rbind(
     simulation,
     rbindlist(
@@ -35,6 +45,7 @@ run_simulation <- function(
           # initialize table to store output for parameter specification:
           simulation_spec <- data.table(K=K, eps=eps, T_=t_0:T_, value=0, variable=algo)
           # run simulation:
+          message(sprintf("Starting with: %s, %i arms, eps=%0.2f, T=%i, n_sim=%i", algo, K, eps, T_, n_sim))
           regret <- algos[[algo]](
             n = n_sim,
             horizon = horizon,
@@ -42,12 +53,15 @@ run_simulation <- function(
             K = K,
             prob = prob
           )
+          message(sprintf("Done with: %s, %i arms, eps=%0.2f, T=%i, n_sim=%i", algo, K, eps, T_, n_sim))
           simulation_spec[,value:=cumsum(regret)] # store results
           return(simulation_spec)
         }
       )
     )
   )
+  time_passed <- Sys.time() - start
+  print(time_passed)
 
   # Plot: ----
   bin_size <- ifelse(T_/1000>1,T_/1000,1)
@@ -71,11 +85,10 @@ run_simulation <- function(
     facet_wrap(eps ~ K, scales="free", labeller = label_parsed) +
     labs(
       x="T",
-      y="Regret"
+      y="Regret",
+      title=sprintf("Number of simulations: %i", n_sim)
     )
-  p
 
   # Save chart:
-  path <- file.path(system("echo $HOME"), "sim_output.png")
-  ggsave(path, plot=p)
+  ggsave("www/user_sim.png", width = 6, height = 4)
 }

@@ -9,14 +9,23 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Multi-Armed Bandit problems
 
-[Problem Set 2](ps2_answers.html) replicates an empirical evaluation of Thompson Sampling [@chapelle2011empirical]. To run the simulation from the command line, simply execute the command below:
+[Problem Set 2](ps2_answers.html) replicates an empirical evaluation of Thompson Sampling [@chapelle2011empirical]. To run the simulation from the command line, simply execute the command below. This will clone the git repo to your device and run the simulation with parameters specified in `run_simulation`.
 
 ```{bash, eval=F}
 git clone https://github.com/pat-alt/reinforcement_learning.git
 cd reinforcement_learning
-...
+Rscript -e 'source("requirements.R"); run_simulation(n_sim=5, horizon=100000)'  
+open 'www/user_sim.png'
 ```
 
 ## References
+
+<div id="refs"></div>
+
+## Session Info
+
+```{r}
+utils::sessionInfo()
+```
 
 

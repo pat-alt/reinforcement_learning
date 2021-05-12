@@ -1,3 +1,9 @@
+#' UCB
+#'
+#' @param mab An object of class `mab`.
+#' @param action_values Initial action value estimates (optional).
+#'
+#' @author Patrick Altmeyer
 ucb_R <- function(
   mab,
   action_values = NULL
