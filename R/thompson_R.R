@@ -16,7 +16,7 @@ thompson_R <- function(
   # Parameters: ----
   unpack(mab) # unpack bandit problem
   # Function to compute posterior means (action values):
-  posterior_means <- function(successes, failures, method="bernoulli") {
+  posterior_means <- function(successes, failures, method=method) {
     K <- length(successes)
     if (method=="bernoulli") {
       theta <- rbeta(K,successes,failures)
@@ -24,7 +24,7 @@ thompson_R <- function(
     return(theta)
   }
   # Function to select based on action values:
-  select_arm <- function(theta, method="bernoulli") {
+  select_arm <- function(theta) {
     arm <- which.max(theta)
     return(arm)
   }
@@ -63,7 +63,7 @@ thompson_R <- function(
 
     # Update parameters and estimates for T+1:
     T_ <- T_ + 1
-    update_this_round <- T_ %/% update_every == T_ / update_every # update only if modulus equal to ratio
+    update_this_round <- T_ %% update_every == 0 # update only if modulus equal to zero
     if (update_this_round) {
       theta <- posterior_means(successes = successes, failures = failures)
     }

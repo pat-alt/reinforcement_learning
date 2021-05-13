@@ -14,9 +14,17 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{bash, eval=F}
 git clone https://github.com/pat-alt/reinforcement_learning.git
 cd reinforcement_learning
-Rscript -e 'source("requirements.R"); run_simulation(n_sim=5, horizon=100000)'  
+Rscript -e 'source("requirements.R"); run_simulation(n_sim=5,horizon=1e6,update_every = 100)'  
 open 'www/user_sim.png'
 ```
+
+With the given set of parameters the computations should only take a few minutes and the resulting chart should looks something like this:
+
+![](www/user_sim.png)
+
+The results from the full simulation are shown below. All details and documentation can be found in the [HTML document](ps2_answers.html).
+
+![](www/ps1_sim.png)
 
 ## References
 

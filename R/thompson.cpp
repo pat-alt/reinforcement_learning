@@ -12,27 +12,22 @@ NumericVector generate_rewards(NumericVector prob, String method="bernoulli") {
   return(v);
 }
 
-// Helper function to select arm:
+// Helper function to compute posterior means (action values):
 // [[Rcpp::export]]
-int select_arm(IntegerVector successes, IntegerVector failures, String method="bernoulli") {
-  int K=successes.size();
-  NumericVector theta = no_init(K);
-  if (method=="bernoulli") {
-    for (int i=0; i<K; i++) {theta[i] = as<double>(rbeta(1, successes[i], failures[i]));}
-  }
-  int arm = which_max(theta);
-  return arm;
-}
-
-// Helper function to compute posteriour means (action values):
-// [[Rcpp::export]]
-NumericVector posteriour_means(IntegerVector successes, IntegerVector failures, String method="bernoulli") {
+NumericVector posterior_means(IntegerVector successes, IntegerVector failures, String method="bernoulli") {
   int K=successes.size();
   NumericVector theta = no_init(K);
   if (method=="bernoulli") {
     for (int i=0; i<K; i++) {theta[i] = as<double>(rbeta(1, successes[i], failures[i]));}
   }
   return(theta);
+}
+
+// Helper function to select arm:
+// [[Rcpp::export]]
+int select_arm(NumericVector theta) {
+  int arm = which_max(theta);
+  return arm;
 }
 
 // Main UCB function:
@@ -42,6 +37,7 @@ List thompson(
     double v_star,
     int K,
     NumericVector prob,
+    int update_every=1,
     String method="bernoulli",
     Nullable<IntegerVector> successes_ = R_NilValue,
     Nullable<IntegerVector> failures_ = R_NilValue
@@ -61,6 +57,7 @@ List thompson(
   if (failures_.isNotNull()) {
     IntegerVector failures(failures_); // casting to underlying type
   }
+  NumericVector theta=posterior_means(successes, failures, method);
 
   // Recursion:
   while(T <= horizon) {
@@ -68,7 +65,7 @@ List thompson(
     // Rcout << "Round: " << T << "\n";
 
     // Select arm:
-    int arm=select_arm(successes, failures, method=method);
+    int arm=select_arm(theta);
 
     // Observe reward:
     NumericVector rewards = generate_rewards(prob, method);
@@ -86,18 +83,19 @@ List thompson(
     } else {
       failures[arm]++;
     }
-
+    // Check if modulus is zero:
+    int update_this_round = T % update_every == 0;
+    if (update_this_round) {
+      theta=posterior_means(successes, failures, method);
+    }
   }
-
-  // Compute an estimate of action values based on final success/failure
-  NumericVector action_values = posteriour_means(successes, failures, method);
 
   // Output
   List output = List::create(
     Named("policy") = policy,
     Named("regret") = regret,
     Named("times_chosen") = times_chosen,
-    Named("action_values") = action_values,
+    Named("action_values") = theta,
     Named("successes") = successes,
     Named("failures") = failures
   );
@@ -113,6 +111,7 @@ NumericVector sim_thompson(
     double v_star,
     int K,
     NumericVector prob,
+    int update_every=1,
     String method="bernoulli",
     Nullable<IntegerVector> successes_ = R_NilValue,
     Nullable<IntegerVector> failures_ = R_NilValue
@@ -127,6 +126,7 @@ NumericVector sim_thompson(
       v_star,
       K,
       prob,
+      update_every,
       method,
       successes_,
       failures_
@@ -147,12 +147,13 @@ NumericVector sim_thompson(
 // prob <- c(0.5,rep(0.4,9))
 // bernoulli_mab <- mab(prob, horizon = 10000)
 // unpack(bernoulli_mab)
-// sim_thompson(
-//   n = 10,
+// thompson(
+//   # n = 10,
 //   horizon = horizon,
 //   v_star = v_star,
 //   K = K,
 //   prob = prob,
+//   update_every = 1,
 //   method = method,
 //   successes_ = NULL,
 //   failures_ = NULL

@@ -48,13 +48,14 @@ ucb_R <- function(
     times_chosen[arm] <- times_chosen[arm] + 1 # update counter
     q <- action_values[arm] # action value at T
     m <- times_chosen[arm] # times chose at T
+    action_values[arm] <- q + 1/m * (r - q) # action value increment
 
     # Update parameters and estimates for T+1:
     T_ <- T_ + 1
-    update_this_round <- T_ %/% update_every == T_ / update_every # update only if modulus equal to ratio
+    update_this_round <- T_ %% update_every == 0 # update only if modulus equal to zero
     if (update_this_round) {
       delta <- sqrt(1/T_)
-      action_values[arm] <- q + 1/m * (r - q) # action value increment
+      # action_values[arm] <- q + 1/m * (r - q) # action value increment
       ucb[arm] <- action_values[arm] + uncertainty(action_values[arm], m, delta) # UCB increment
     }
   }

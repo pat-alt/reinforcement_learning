@@ -10,6 +10,7 @@ sourceCpp("R/thompson.cpp")
 #' @author Patrick Altmeyer
 thompson_Rcpp <- function(
   mab,
+  update_every = 1,
   cpp_fun=thompson,
   successes = NULL,
   failures = NULL
@@ -24,12 +25,13 @@ thompson_Rcpp <- function(
     v_star = v_star,
     K = K,
     prob=prob,
+    update_every = update_every,
     successes = successes,
     failures = failures
   )
 
   # Output: ----
-  output <- c(output, mab=mab)
+  output[["mab"]] <- mab
   class(output) <- "policy"
   return(output)
 }

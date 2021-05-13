@@ -48,6 +48,7 @@ List ucb(
     double v_star,
     int K,
     NumericVector prob,
+    int update_every=1,
     String method="bernoulli",
     Nullable<NumericVector> action_values_ = R_NilValue
 ) {
@@ -69,6 +70,8 @@ List ucb(
   // Recursion:
   while(T <= horizon) {
 
+    // Rcout << "UCB: " << ucb << "\n";
+
     // Select arm:
     int arm=select_arm(ucb);
 
@@ -82,13 +85,18 @@ List ucb(
     times_chosen[arm] = times_chosen[arm] + 1; // update counter
     double q = action_values[arm]; // action value at T
     int m = times_chosen[arm]; // times chose at T
+    action_values[arm] = q + 1.0/m * (r - q); // action value increment for selected arm
 
     // Update:
     T++;
-    double delta = sqrt(1.0/T);
-    action_values[arm] = q + 1.0/m * (r - q); // action value increment for selected arm
-    u = uncertainty(action_values, times_chosen, delta); // update uncertainty
-    ucb = action_values + u; // update UCB
+    // Check if modulus is zero:
+    int update_this_round = T % update_every == 0;
+    if (update_this_round) {
+      double delta = sqrt(1.0/T);
+      // action_values[arm] = q + 1.0/m * (r - q); // action value increment for selected arm
+      u = uncertainty(action_values, times_chosen, delta); // update uncertainty
+      ucb = action_values + u; // update UCB
+    }
   }
 
   // Output
@@ -111,6 +119,7 @@ NumericVector sim_ucb(
     double v_star,
     int K,
     NumericVector prob,
+    int update_every=1,
     String method="bernoulli",
     Nullable<NumericVector> action_values_ = R_NilValue
 ) {
@@ -123,9 +132,10 @@ NumericVector sim_ucb(
       horizon,
       v_star,
       K,
-      prob = prob,
-      method = method,
-      action_values_ = action_values_
+      prob,
+      update_every,
+      method,
+      action_values_
     );
     NumericVector reg_sim=policy["regret"];
     regret = regret + reg_sim / n; // increment regret
@@ -144,11 +154,12 @@ NumericVector sim_ucb(
 // bernoulli_mab <- mab(prob, horizon = 10000)
 // unpack(bernoulli_mab)
 // sim_ucb(
-//   n = 500,
+//   n = 50,
 //   horizon = horizon,
 //   v_star = v_star,
 //   K = K,
 //   prob = prob,
+//   update_every=100,
 //   method = method,
 //   action_values_ = NULL
 // )

@@ -17,6 +17,7 @@ rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
 library(data.table)
 library(ggplot2)
+library(scales)
 lapply(
   list.files("R", pattern = "\\.R"),
   function(file) {
@@ -128,7 +129,7 @@ ggsave("www/mb.png", width = 6, height = 4)
 knitr::include_graphics("www/mb.png")
 ```
 
-## Simulations
+# Simulations
 
 First, let us set up a grid for the simulation, which will use both to draw the different parameters ($K$, $\varepsilon$):
 
@@ -152,6 +153,8 @@ We will also set up a corresponding table to store the results from the simulati
 ```{r, eval=F}
 simulation <- CJ(K=K,eps=eps,T_=t_0:T_)
 ```
+
+## Continuous updates
 
 ### Lower bound
 
@@ -203,7 +206,8 @@ simulation <- rbind(
           horizon = horizon,
           v_star = v_star,
           K = K,
-          prob = prob
+          prob = prob,
+          update_every = update_every
         )
         message(sprintf(
           "Done with: %s, %i arms, eps=%0.2f, T=%i, n_sim=%i", 
@@ -224,9 +228,9 @@ print(time_passed)
 saveRDS(simulation, file="results/simulation.rds")
 ```
 
-### Final chart
+### Chart
 
-The results are consistent with the findings in @chapelle2011empirical: for all parameter specifications both the UCB and Thompson Sampling attain sub-linearity before reaching $10^7$ trials. As expected, Thompson Sampling consistently outperforms UCB. Compared to the results in @chapelle2011empirical, both the UCB and to a lesser extent Thompson Sampling yield somewhat lower absolute levels of cumulative regret for any given $T$. This is likely due to the fact that here we have updated parameters continuously in each round, while @chapelle2011empirical only update every 100 trials.
+The results are consistent with the findings in @chapelle2011empirical: for all parameter specifications both the UCB and Thompson Sampling attain sub-linearity before reaching $10^7$ trials (Figure \@ref(fig:chart)). As expected, Thompson Sampling consistently outperforms UCB. Compared to the results in @chapelle2011empirical, both the UCB and to a lesser extent Thompson Sampling yield somewhat lower absolute levels of cumulative regret for any given $T$. This is likely due to the fact that here we have updated parameters continuously in each round, while @chapelle2011empirical only update every 100 trials.
 
 ```{r, eval=FALSE, echo=FALSE}
 library(ggplot2)
@@ -250,18 +254,31 @@ p <- ggplot(data=dt_plot[T_>=100]) +
     labels = trans_format("log10", math_format(10^.x))
   ) +
   scale_color_discrete(name="Variable:") +
-  facet_wrap(K ~ eps, scales="free", labeller = label_parsed) +
+  facet_wrap(eps ~ K, scales="free", labeller = label_parsed) +
   labs(
     x="T",
     y="Regret",
     title=sprintf("Number of simulations: %i", n_sim)
   )
 p
-ggsave("www/ps1_chart.png", width = 6, height = 4)
+ggsave("www/ps1_sim.png", width = 6, height = 4)
 ```
 
 ```{r chart, fig.cap="Comparison of algorithms as in @chapelle2011empirical.", echo=FALSE}
-knitr::include_graphics("www/ps1_chart.png")
+knitr::include_graphics("www/ps1_sim.png")
+```
+
+## Discrete updates
+
+For the complete picture we also run the simulation with updates at discrete intervals of 100 trials. The results shown in Figure \@ref(fig:chart-2) are broadly consistent with the results from above.
+
+```{r, eval=FALSE}
+n_sim <- 25
+run_simulation(n_sim=n_sim,horizon=1e7,update_every = 100,file="ps1_sim_discrete.png")
+```
+
+```{r chart-2, fig.cap="Comparison of algorithms as in @chapelle2011empirical. Parameter updates every 100 trials.", echo=FALSE}
+knitr::include_graphics("www/ps1_sim_discrete.png")
 ```
 
 # References {-}

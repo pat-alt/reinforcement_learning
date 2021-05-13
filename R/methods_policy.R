@@ -1,6 +1,6 @@
 # Methods: ----
 print.policy <- function(policy) {
-  print(sprintf("Loss after %i trials: %0.2f", policy$mab.horizon, sum(policy$regret)))
+  print(sprintf("Loss after %i trials: %0.2f", policy$mab$horizon, sum(policy$regret)))
 }
 
 plot.policy <- function(policy,...) {

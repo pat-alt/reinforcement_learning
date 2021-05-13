@@ -9,6 +9,7 @@ sourceCpp("R/ucb.cpp")
 #' @author Patrick Altmeyer
 ucb_Rcpp <- function(
   mab,
+  update_every=1,
   cpp_fun=ucb,
   action_values = NULL
 ) {
@@ -22,11 +23,12 @@ ucb_Rcpp <- function(
     v_star = v_star,
     K = K,
     prob=prob,
+    update_every=update_every,
     action_values_ = action_values
   )
 
   # Output: ----
-  output <- c(output, mab=mab)
+  output[["mab"]] <- mab
   class(output) <- "policy"
   return(output)
 }

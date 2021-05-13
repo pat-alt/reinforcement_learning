@@ -8,13 +8,15 @@
 #'
 #' @author Patrick Altmeyer
 run_simulation <- function(
-  n_sim=5, horizon=100000,
+  n_sim=5, horizon=100000, update_every=1,
   K=c(10,100),
   eps=c(0.02,0.1),
   algos=list(
     ucb = sim_ucb,
     thompson = sim_thompson
-  )
+  ),
+  file=NULL,
+  n_start=100
 ) {
 
   # Setup: ----
@@ -51,7 +53,8 @@ run_simulation <- function(
             horizon = horizon,
             v_star = v_star,
             K = K,
-            prob = prob
+            prob = prob,
+            update_every = update_every
           )
           message(sprintf("Done with: %s, %i arms, eps=%0.2f, T=%i, n_sim=%i", algo, K, eps, T_, n_sim))
           simulation_spec[,value:=cumsum(regret)] # store results
@@ -68,7 +71,7 @@ run_simulation <- function(
   dt_plot <- copy(simulation)
   dt_plot <- dt_plot[,bin:=(((T_) %/% bin_size))*bin_size]
   dt_plot[,bin_idx:=1:.N,by=.(K,eps,variable,bin)]
-  dt_plot <- dt_plot[bin_idx==1 | (bin==0 & bin_idx %in% round(seq(100,bin_size-bin_size/4,length.out=4)))]
+  dt_plot <- dt_plot[bin_idx==1 | (bin==0 & bin_idx %in% round(seq(100,bin_size-bin_size/n_start,length.out=n_start)))]
   dt_plot[,bin_idx:=NULL]
   dt_plot[,bin:=NULL]
   dt_plot[,K:=sprintf("K==%i",K)]
@@ -86,9 +89,16 @@ run_simulation <- function(
     labs(
       x="T",
       y="Regret",
-      title=sprintf("Number of simulations: %i", n_sim)
+      title=sprintf("Number of simulations: %i", n_sim),
+      subtitle = sprintf("Updated every %i trials", update_every)
     )
 
   # Save chart:
-  ggsave("www/user_sim.png", width = 6, height = 4)
+  if (is.null(file)) {
+    ggsave("www/user_sim.png", width = 6, height = 4)
+  } else {
+    file_path <- file.path("www", file)
+    ggsave(file_path, width = 6, height = 4)
+  }
+
 }
