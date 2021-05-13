@@ -2,10 +2,12 @@
 ## Multi-Armed Bandit problems
 
 [Problem Set 2](ps2_answers.html) replicates an empirical evaluation of
-Thompson Sampling (Chapelle and Li 2011). To run the simulation from the
-command line, simply execute the command below. This will clone the git
-repo to your device and run the simulation with parameters specified in
-`run_simulation`.
+Thompson Sampling (Chapelle and Li 2011). Code for this problem has been
+implemented in R and performance-enhanced through `Rcpp` (`C++`).
+
+To run the simulation from the command line, simply execute the command
+below. This will clone the git repo to your device and run the
+simulation with parameters specified in `run_simulation`.
 
 ``` bash
 git clone https://github.com/pat-alt/reinforcement_learning.git
