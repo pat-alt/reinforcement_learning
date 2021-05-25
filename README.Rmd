@@ -30,6 +30,10 @@ The results from the full simulation are shown below. All details and documentat
 
 ## Gaussian Processes
 
+The first part of [Problem Set 3](ps3_answers.html) ...
+
+![](www/gp_reg.png)
+
 ## References
 
 <div id="refs"></div>

@@ -26,6 +26,12 @@ documentation can be found in the [HTML document](ps2_answers.html).
 
 ![](www/ps1_sim.png)
 
+## Gaussian Processes
+
+The first part of [Problem Set 3](ps3_answers.html) …
+
+![](www/gp_reg.png)
+
 ## References
 
 <div id="refs" class="references csl-bib-body hanging-indent">
@@ -63,5 +69,5 @@ utils::sessionInfo()
     ## loaded via a namespace (and not attached):
     ##  [1] compiler_4.0.3    magrittr_2.0.1    tools_4.0.3       htmltools_0.5.1.1
     ##  [5] yaml_2.2.1        stringi_1.5.3     rmarkdown_2.6     knitr_1.30       
-    ##  [9] stringr_1.4.0     xfun_0.20         digest_0.6.27     rlang_0.4.10     
+    ##  [9] stringr_1.4.0     xfun_0.20         digest_0.6.27     rlang_0.4.11     
     ## [13] evaluate_0.14

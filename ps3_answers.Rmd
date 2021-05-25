@@ -52,6 +52,7 @@ set.seed(rand_seed)
 y <- gaussian_process(X=X)
 gp_reg <- gaussian_process_regression(X=X, y=y, X_test = X_test)
 plot(gp_reg)
+ggsave("www/gp_reg.png", width = 7, height = 5)
 ```
 
 ```{r}
