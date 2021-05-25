@@ -28,6 +28,8 @@ The results from the full simulation are shown below. All details and documentat
 
 ![](www/ps1_sim.png)
 
+## Gaussian Processes
+
 ## References
 
 <div id="refs"></div>

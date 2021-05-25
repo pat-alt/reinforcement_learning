@@ -1,0 +1,99 @@
+---
+title: "Problem Set 3"
+subtitle: "Gaussian Processes and Bayesian Optimization"
+author: "Patrick Altmeyer"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output: 
+  bookdown::html_document2:
+    code_folding: show
+    number_sections: true
+    toc: true
+    toc_float: true
+bibliography: bib.bib
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+library(data.table)
+library(ggplot2)
+library(scales)
+lapply(
+  list.files("R", pattern = "\\.R"),
+  function(file) {
+    source(file = file.path("R",file))
+  }
+)
+rand_seed <- 123
+theme_set(theme_bw())
+```
+
+# Gaussian processes
+
+## Squared exponential kernel
+
+```{r}
+set.seed(rand_seed)
+gp_samples <- gaussian_process_sampler(noise_sd=0.1,length_scale=1,signal_sd=1)
+plot(gp_samples)
+```
+
+## Gaussian Process Regression
+
+```{r}
+set.seed(rand_seed)
+n_train <- 20
+X <- runif(n_train, min = -7, max = 7)
+X_test <- seq(-7,7,length.out=100)
+```
+
+```{r}
+set.seed(rand_seed)
+y <- gaussian_process(X=X)
+gp_reg <- gaussian_process_regression(X=X, y=y, X_test = X_test)
+plot(gp_reg)
+```
+
+```{r}
+set.seed(rand_seed)
+length_scale <- 0.3
+signal_sd <- 1.08
+noise_sd <- 0.00005
+y <- gaussian_process(
+  X=X, 
+  signal_sd=signal_sd, 
+  length_scale=length_scale, 
+  noise_sd = noise_sd
+)
+gp_reg <- gaussian_process_regression(
+  X=X, y=y, X_test = X_test, 
+  signal_sd=signal_sd, 
+  length_scale=length_scale, 
+  noise_sd = noise_sd
+)
+plot(gp_reg)
+```
+
+```{r}
+set.seed(rand_seed)
+length_scale <- 3
+signal_sd <- 1.16
+noise_sd <- 0.89
+y <- gaussian_process(
+  X=X, 
+  signal_sd=signal_sd, 
+  length_scale=length_scale, 
+  noise_sd = noise_sd
+)
+gp_reg <- gaussian_process_regression(
+  X=X, y=y, X_test = X_test, 
+  signal_sd=signal_sd, 
+  length_scale=length_scale, 
+  noise_sd = noise_sd
+)
+plot(gp_reg)
+```
+
+# Bayesian Optimization
+
+
