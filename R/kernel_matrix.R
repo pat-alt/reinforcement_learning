@@ -11,16 +11,21 @@ kernel_matrix <- function(X,Y=NULL,kernel_fun, ...) {
   Y <- as.matrix(Y)
   n_y <- nrow(Y)
 
-  vapply(
-    1:n_x,
-    function(i) {
-      sapply(
-        1:n_y,
-        function(j) {
-          kernel_fun(X[i,],Y[j,],...)
-        }
-      )
-    },
-    FUN.VALUE = rep(0,n_y)
+  K <- matrix(
+    vapply(
+      1:n_x,
+      function(i) {
+        sapply(
+          1:n_y,
+          function(j) {
+            kernel_fun(X[i,],Y[j,],...)
+          }
+        )
+      },
+      FUN.VALUE = as.matrix(rep(0,n_y))
+    ),
+    nrow = n_x
   )
+
+  return(K)
 }

@@ -34,7 +34,7 @@ theme_set(theme_bw())
 
 ```{r}
 set.seed(rand_seed)
-gp_samples <- gaussian_process_sampler(noise_sd=0.1,length_scale=1,signal_sd=1)
+gp_samples <- gaussian_process_sampler(noise_sd=0.0000001,length_scale=1,signal_sd=1)
 plot(gp_samples)
 ```
 
@@ -97,4 +97,47 @@ plot(gp_reg)
 
 # Bayesian Optimization
 
+```{r}
+x_lim <- c(-5,10)
+y_lim <- c(0,15)
+n_test <- 30
+length_scale <- 1
+signal_sd <- 1
+noise_sd <- 0.1
+hyper_params <- list(
+  length_scale=length_scale,
+  signal_sd=signal_sd,
+  noise_sd=noise_sd
+)
+n <- 5
+x_1 <- runif(n, min = -5, max = 10)
+x_2 <- runif(n, min = 0, max = 15)
+y <- gaussian_process(
+  X=X, 
+  signal_sd=signal_sd, 
+  length_scale=length_scale, 
+  noise_sd = noise_sd
+)
+# y <- branin(x_1,x_2)$output # function to learn
+X <- cbind(x_1,x_2) # training points
+# Test points:
+X_test <- as.matrix(
+  expand.grid( 
+    x_1 = seq(min(x_lim),max(x_lim),length.out=n_test),
+    x_2 = seq(min(x_lim),max(x_lim),length.out=n_test)
+  )
+)
+```
+
+```{r}
+n_iter <- 10
+optimum <- bayesian_optimization(
+  X=X, 
+  y=y,
+  X_test = X_test,
+  n_iter=n_iter,
+  hyper_params = hyper_params,
+  verbose = 2
+)
+```
 

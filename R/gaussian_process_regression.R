@@ -22,14 +22,14 @@ gaussian_process_regression <- function(
   # Derive gram matrix:
   K <- kernel_matrix(X, kernel_fun = kernel_fun, ...) # Training
   L <- t(chol(K + noise_sd^2 * diag(n))) # Cholesky decompose
-  alpha <- solve(crossprod(t(L)),y)
+  alpha <- as.matrix(solve(crossprod(t(L)),y))
 
   # Iterate over test cases:
   predictions <- t(
     sapply(
       1:n_test,
       function(i) {
-        x_star <- X_test[i,]
+        x_star <- matrix(X_test[i,],nrow = 1)
         k_star <- kernel_matrix(X, x_star, kernel_fun = kernel_fun, ...)
         predictive_mean <- crossprod(k_star, alpha)
         v <- solve(L, k_star)
@@ -86,4 +86,27 @@ plot.gp_regression <- function(gp_regression) {
   p
   return(p)
 
+}
+
+# UCB:
+ucb.gp_regression <- function(gp_regression, beta=0.5) {
+
+  list2env(gp_regression, envir = environment())
+
+  # Apply UCB
+  ucb <- predictions[,1] + beta * predictions[,2]
+  X_t <- X_test[which.max(ucb),]
+  y <- predictions[which.max(ucb),1]
+
+  # Return:
+  output <- list(
+    X_t = X_t,
+    y = y
+  )
+  return(output)
+
+}
+
+ucb <- function(gp_regression, beta=0.5) {
+  UseMethod("ucb", gp_regression)
 }
