@@ -100,7 +100,7 @@ plot(gp_reg)
 ```{r}
 x_lim <- c(-5,10)
 y_lim <- c(0,15)
-n_test <- 30
+n_test <- 100
 length_scale <- 1
 signal_sd <- 1
 noise_sd <- 0.1
@@ -112,13 +112,6 @@ hyper_params <- list(
 n <- 5
 x_1 <- runif(n, min = -5, max = 10)
 x_2 <- runif(n, min = 0, max = 15)
-y <- gaussian_process(
-  X=X, 
-  signal_sd=signal_sd, 
-  length_scale=length_scale, 
-  noise_sd = noise_sd
-)
-# y <- branin(x_1,x_2)$output # function to learn
 X <- cbind(x_1,x_2) # training points
 # Test points:
 X_test <- as.matrix(
@@ -132,12 +125,13 @@ X_test <- as.matrix(
 ```{r}
 n_iter <- 10
 optimum <- bayesian_optimization(
+  objective_fun=branin,
   X=X, 
-  y=y,
   X_test = X_test,
   n_iter=n_iter,
   hyper_params = hyper_params,
-  verbose = 2
+  verbose = 2,
+  beta=0.5
 )
 ```
 

@@ -1,6 +1,6 @@
 bayesian_optimization <- function(
+  objective_fun=branin,
   X,
-  y,
   X_test,
   n_iter = 100,
   hyper_params = list(
@@ -9,13 +9,16 @@ bayesian_optimization <- function(
     noise_sd = 0.1
   ),
   acquisition_fun = ucb,
-  verbose = 1
+  verbose = 1,
+  ...
 ) {
 
   # Setup: ----
   # Initial hyper parameters:
   list2env(hyper_params, envir = environment())
   counter <- 1
+  y <- objective_fun(X) # function to learn
+  n_init_train <- nrow(X) # initial number of training points
 
   # Bayesian optimization: ----
   while (counter <= n_iter) {
@@ -23,13 +26,6 @@ bayesian_optimization <- function(
     if(verbose %in% c(1,2)) {
       message(sprintf("Iteration %i:", counter))
     }
-
-    y <- gaussian_process(
-      X=X,
-      signal_sd=signal_sd,
-      length_scale=length_scale,
-      noise_sd = noise_sd
-    )
 
     # Run GP regression:
     gp_reg <- gaussian_process_regression(
@@ -40,20 +36,18 @@ bayesian_optimization <- function(
     )
 
     # Run acquisition function:
-    acq_output <- acquisition_fun(gp_reg)
-    X_star <- acq_output$X_t
-    y_t <- acq_output$y
+    X_star <- acquisition_fun(gp_reg, ...)
 
     # Update:
     X <- rbind(X, X_star)
-    # y <- as.matrix(c(y,y_t))
+    y <- objective_fun(X) # update function
     counter <- counter + 1
 
     if(verbose==2) {
       print("New point:")
       print(X_star)
       print("Function value:")
-      print(y_t)
+      print(y[n_init_train+counter-1])
     }
   }
 

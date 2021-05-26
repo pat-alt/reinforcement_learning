@@ -96,14 +96,9 @@ ucb.gp_regression <- function(gp_regression, beta=0.5) {
   # Apply UCB
   ucb <- predictions[,1] + beta * predictions[,2]
   X_t <- X_test[which.max(ucb),]
-  y <- predictions[which.max(ucb),1]
 
   # Return:
-  output <- list(
-    X_t = X_t,
-    y = y
-  )
-  return(output)
+  return(X_t)
 
 }
 
