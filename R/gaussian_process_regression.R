@@ -89,19 +89,19 @@ plot.gp_regression <- function(gp_regression) {
 }
 
 # UCB:
-ucb.gp_regression <- function(gp_regression, beta=0.5) {
+acqui_ucb.gp_regression <- function(gp_regression, exploring_rate=0.5) {
 
   list2env(gp_regression, envir = environment())
 
   # Apply UCB
-  ucb <- predictions[,1] + beta * predictions[,2]
-  X_t <- X_test[which.max(ucb),]
+  ucb <- predictions[,1] + exploring_rate * predictions[,2]
+  X_t <- matrix(X_test[which.min(ucb),], ncol = ncol(gp_regression$X))
 
   # Return:
   return(X_t)
 
 }
 
-ucb <- function(gp_regression, beta=0.5) {
-  UseMethod("ucb", gp_regression)
+acqui_ucb <- function(gp_regression, exploring_rate=0.5) {
+  UseMethod("acqui_ucb", gp_regression)
 }

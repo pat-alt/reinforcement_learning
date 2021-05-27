@@ -100,7 +100,7 @@ plot(gp_reg)
 ```{r}
 x_lim <- c(-5,10)
 y_lim <- c(0,15)
-n_test <- 100
+n_test <- 50
 length_scale <- 1
 signal_sd <- 1
 noise_sd <- 0.1
@@ -117,7 +117,7 @@ X <- cbind(x_1,x_2) # training points
 X_test <- as.matrix(
   expand.grid( 
     x_1 = seq(min(x_lim),max(x_lim),length.out=n_test),
-    x_2 = seq(min(x_lim),max(x_lim),length.out=n_test)
+    x_2 = seq(min(y_lim),max(y_lim),length.out=n_test)
   )
 )
 ```
@@ -131,7 +131,7 @@ optimum <- bayesian_optimization(
   n_iter=n_iter,
   hyper_params = hyper_params,
   verbose = 2,
-  beta=0.5
+  exploring_rate=0.5
 )
 ```
 
