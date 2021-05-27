@@ -4,6 +4,7 @@ gaussian_process_regression <- function(
   kernel_fun=kernel_se,
   noise_sd=0.1,
   X_test,
+  inv_tol=1e-30,
   ...
 ) {
 
@@ -22,7 +23,7 @@ gaussian_process_regression <- function(
   # Derive gram matrix:
   K <- kernel_matrix(X, kernel_fun = kernel_fun, ...) # Training
   L <- t(chol(K + noise_sd^2 * diag(n))) # Cholesky decompose
-  alpha <- as.matrix(solve(crossprod(t(L)),y))
+  alpha <- as.matrix(solve(crossprod(t(L)),y,tol=inv_tol))
 
   # Iterate over test cases:
   predictions <- t(
@@ -88,7 +89,7 @@ plot.gp_regression <- function(gp_regression) {
 
 }
 
-# UCB:
+# UCB: ----
 acqui_ucb.gp_regression <- function(
   gp_regression, exploring_rate=0.5, fn_scale=1, verbose=1
 ) {
@@ -96,11 +97,11 @@ acqui_ucb.gp_regression <- function(
   list2env(gp_regression, envir = environment())
 
   # Apply UCB
-  ucb <- predictions[,1] + exploring_rate * predictions[,2]
-  idx_max <- which.max(ucb)
+  value_estimate <- predictions[,1] + exploring_rate * predictions[,2]
+  idx_max <- which.max(value_estimate)
   if (verbose==3) {
-    points(fn_scale * ucb, col=alpha("blue",0.5), cex=0.8, t="l")
-    points(x=which.max(ucb), y=fn_scale * max(ucb), col="blue", cex=1.5, pch=16)
+    points(fn_scale * predictions[,1], col=alpha("blue",0.5), cex=0.8, t="l")
+    points(x=idx_max, y=fn_scale * predictions[idx_max,1], col="blue", cex=1.5, pch=16)
     legend(
       "topright",
       legend=c("True value", "Estimated value"),
@@ -119,3 +120,74 @@ acqui_ucb <- function(
 ) {
   UseMethod("acqui_ucb", gp_regression)
 }
+
+# PI: ----
+acqui_pi.gp_regression <- function(
+  gp_regression, exploring_rate=0.5, fn_scale=1, verbose=1
+) {
+
+  list2env(gp_regression, envir = environment())
+
+  # Apply PI:
+  mu_star <- max(y)
+  z_score <- (predictions[,1] - mu_star - exploring_rate)/sqrt(predictions[,2])
+  value_estimate <- pnorm(z_score)
+  idx_max <- which.max(value_estimate)
+  if (verbose==3) {
+    points(fn_scale * predictions[,1], col=alpha("blue",0.5), cex=0.8, t="l")
+    points(x=idx_max, y=fn_scale * predictions[idx_max,1], col="blue", cex=1.5, pch=16)
+    legend(
+      "topright",
+      legend=c("True value", "Estimated value"),
+      lty=c(1,1), col=c("black", "blue")
+    )
+  }
+  X_t <- matrix(X_test[idx_max,], ncol = ncol(gp_regression$X))
+
+  # Return:
+  return(X_t)
+
+}
+
+acqui_pi <- function(
+  gp_regression, exploring_rate=0.5, fn_scale=1, verbose=1
+) {
+  UseMethod("acqui_pi", gp_regression)
+}
+
+# EI: ----
+acqui_ei.gp_regression <- function(
+  gp_regression, exploring_rate=0.5, fn_scale=1, verbose=1
+) {
+
+  list2env(gp_regression, envir = environment())
+
+  # Apply EI:
+  mu_star <- max(y)
+  z_score <- (predictions[,1] - mu_star - exploring_rate)/sqrt(predictions[,2])
+  value_estimate <- (predictions[,1] - mu_star - exploring_rate) * pnorm(z_score) +
+    sqrt(predictions[,2]) * dnorm(z_score)
+
+  idx_max <- which.max(value_estimate)
+  if (verbose==3) {
+    points(fn_scale * predictions[,1], col=alpha("blue",0.5), cex=0.8, t="l")
+    points(x=idx_max, y=fn_scale * predictions[idx_max,1], col="blue", cex=1.5, pch=16)
+    legend(
+      "topright",
+      legend=c("True value", "Estimated value"),
+      lty=c(1,1), col=c("black", "blue")
+    )
+  }
+  X_t <- matrix(X_test[idx_max,], ncol = ncol(gp_regression$X))
+
+  # Return:
+  return(X_t)
+
+}
+
+acqui_ei <- function(
+  gp_regression, exploring_rate=0.5, fn_scale=1, verbose=1
+) {
+  UseMethod("acqui_ei", gp_regression)
+}
+

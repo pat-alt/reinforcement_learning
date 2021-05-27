@@ -98,6 +98,7 @@ plot(gp_reg)
 # Bayesian Optimization
 
 ```{r}
+set.seed(rand_seed)
 x_lim <- c(-5,10)
 y_lim <- c(0,15)
 n_test <- 10
@@ -124,7 +125,7 @@ X_test <- as.matrix(
 
 ```{r}
 n_iter <- 5
-optimum <- bayesian_optimization(
+bayes_optimum <- bayesian_optimization(
   objective_fun=branin,
   X=X, 
   X_test = X_test,
@@ -132,7 +133,10 @@ optimum <- bayesian_optimization(
   hyper_params = hyper_params,
   verbose = 3,
   exploring_rate=0.5,
-  fn_scale = -1
+  fn_scale = -1,
+  store_path = TRUE
 )
+plot(bayes_optimum)
 ```
 
+## Benchmarking

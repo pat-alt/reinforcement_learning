@@ -9,7 +9,8 @@ optim_hyper <- function(
     fnscale=-1
   ),
   tol=1e-30,
-  min_par=1e-5
+  min_par=1e-5,
+  eps=1e-30
 ) {
 
   # Log likelihood:
@@ -23,7 +24,7 @@ optim_hyper <- function(
     # Covariance matrix:
     K <- kernel_matrix(X, kernel_fun = kernel_fun, signal_sd=signal_sd, length_scale=length_scale)
     K_y <- K + noise_sd^2 * diag(n)
-    L <- t(chol(K_y)) # Cholesky decompose
+    L <- t(chol(K_y + eps)) # Cholesky decompose
     alpha <- as.matrix(solve(crossprod(t(L)),y,tol=tol))
 
     # Compute log marginal likelihood:
