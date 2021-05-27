@@ -52,7 +52,8 @@ gaussian_process_regression <- function(
 
 }
 
-# Methods:
+# Methods: ----
+# Plot: ----
 plot.gp_regression <- function(gp_regression) {
 
   list2env(gp_regression, envir = environment())

@@ -146,7 +146,7 @@ plot.bayes_optimum <- function(bayes_optimum) {
 library(gganimate)
 plot_path.bayes_optimum <- function(bayes_optimum) {
 
-  if (is.null(bayes_optimum$posterior)) {
+  if (is.null(bayes_optimum$path$posterior)) {
     stop("Path of posterior was not stored.")
   }
 
@@ -156,12 +156,23 @@ plot_path.bayes_optimum <- function(bayes_optimum) {
   path <- copy(posterior)
   path[,value:=value * bayes_optimum$fn_scale]
   setnames(path, "value", "estimate")
-  path[,true:=rep.int(bayes_optimum$objective_fun(bayes_optimum$X_test),max(t))]
+  true_y <- bayes_optimum$objective_fun(bayes_optimum$X_test)
+  ylim <- range(true_y)
+  ylim[1] <- ylim[1] * 0.9
+  ylim[2] <- ylim[2] * 1.1
+  path[,true:=rep.int(true_y,max(t))]
   path[,point:=1:.N,by=.(t)]
   path[,lb:=estimate-2*uncertainty]
   path[,ub:=estimate+2*uncertainty]
   path <- melt(path, id.vars = c("t", "point", "uncertainty"))
   path[,uncertainty:=NULL]
+  point_estimate <- copy(path[variable %in% c("estimate", "true")])
+
+  # Confidence bands:
+  ci <- copy(path[variable %in% c("lb", "ub")])
+  ci[,id:=1]
+  ci[variable=="lb",point:=rev(point),by=.(t)]
+  ci[variable=="lb",value:=rev(value),by=.(t)]
 
   # Minimum path:
   y_star <- bayes_optimum$true_optimum
@@ -179,8 +190,14 @@ plot_path.bayes_optimum <- function(bayes_optimum) {
   )
 
   p <- ggplot() +
+    geom_polygon(
+      data=ci,
+      aes(x=point, y=value, group=id),
+      fill="blue",
+      alpha=0.1
+    ) +
     geom_line(
-      data=path[variable %in% c("estimate", "true")],
+      data=point_estimate,
       aes(x=point, y=value, colour=variable)
     ) +
     geom_point(
@@ -200,9 +217,13 @@ plot_path.bayes_optimum <- function(bayes_optimum) {
     )+
     labs(
       title="Iteration: {closest_state}"
-    )
+    ) +
+    coord_cartesian(ylim=ylim)
 
   animate(p, width = 400, height = 300)
 
 }
 
+plot_path <- function(bayes_optimum) {
+  UseMethod("plot_path", bayes_optimum)
+}

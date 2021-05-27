@@ -97,6 +97,8 @@ plot(gp_reg)
 
 # Bayesian Optimization
 
+## UCB
+
 ```{r}
 set.seed(rand_seed)
 x_lim <- c(-5,10)
@@ -123,8 +125,8 @@ X_test <- as.matrix(
 )
 ```
 
-```{r}
-n_iter <- 5
+```{r, eval=FALSE}
+n_iter <- 100
 bayes_optimum <- bayesian_optimization(
   objective_fun=branin,
   X=X, 
@@ -136,7 +138,27 @@ bayes_optimum <- bayesian_optimization(
   fn_scale = -1,
   store_path = TRUE
 )
+saveRDS(bayes_optimum, file="results/bayes_optimum.rds")
+```
+
+### Learning path
+
+```{r, eval=FALSE}
+plot_path(bayes_optimum)
+anim_save("www/bayes_opt.gif")
+```
+
+```{r, fig.cap="The learning path of the algorithm."}
+knitr::include_graphics("www/bayes_opt.gif")
+```
+
+
+### Loss
+
+```{r}
 plot(bayes_optimum)
 ```
 
-## Benchmarking
+## Benchmarking acquisition functions
+
+
