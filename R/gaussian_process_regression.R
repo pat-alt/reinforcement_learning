@@ -89,19 +89,33 @@ plot.gp_regression <- function(gp_regression) {
 }
 
 # UCB:
-acqui_ucb.gp_regression <- function(gp_regression, exploring_rate=0.5) {
+acqui_ucb.gp_regression <- function(
+  gp_regression, exploring_rate=0.5, fn_scale=1, verbose=1
+) {
 
   list2env(gp_regression, envir = environment())
 
   # Apply UCB
   ucb <- predictions[,1] + exploring_rate * predictions[,2]
-  X_t <- matrix(X_test[which.min(ucb),], ncol = ncol(gp_regression$X))
+  idx_max <- which.max(ucb)
+  if (verbose==3) {
+    points(fn_scale * ucb, col=alpha("blue",0.5), cex=0.8, t="l")
+    points(x=which.max(ucb), y=fn_scale * max(ucb), col="blue", cex=1.5, pch=16)
+    legend(
+      "topright",
+      legend=c("True value", "Estimated value"),
+      lty=c(1,1), col=c("black", "blue")
+    )
+  }
+  X_t <- matrix(X_test[idx_max,], ncol = ncol(gp_regression$X))
 
   # Return:
   return(X_t)
 
 }
 
-acqui_ucb <- function(gp_regression, exploring_rate=0.5) {
+acqui_ucb <- function(
+  gp_regression, exploring_rate=0.5, fn_scale=1, verbose=1
+) {
   UseMethod("acqui_ucb", gp_regression)
 }

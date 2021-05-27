@@ -34,7 +34,7 @@ theme_set(theme_bw())
 
 ```{r}
 set.seed(rand_seed)
-gp_samples <- gaussian_process_sampler(noise_sd=0.0000001,length_scale=1,signal_sd=1)
+gp_samples <- gaussian_process_sampler(noise_sd=0.1,length_scale=1,signal_sd=1)
 plot(gp_samples)
 ```
 
@@ -100,7 +100,7 @@ plot(gp_reg)
 ```{r}
 x_lim <- c(-5,10)
 y_lim <- c(0,15)
-n_test <- 50
+n_test <- 10
 length_scale <- 1
 signal_sd <- 1
 noise_sd <- 0.1
@@ -123,15 +123,16 @@ X_test <- as.matrix(
 ```
 
 ```{r}
-n_iter <- 10
+n_iter <- 5
 optimum <- bayesian_optimization(
   objective_fun=branin,
   X=X, 
   X_test = X_test,
   n_iter=n_iter,
   hyper_params = hyper_params,
-  verbose = 2,
-  exploring_rate=0.5
+  verbose = 3,
+  exploring_rate=0.5,
+  fn_scale = -1
 )
 ```
 
