@@ -19,18 +19,47 @@ open 'www/user_sim.png'
 With the given set of parameters the computations should only take a few
 minutes and the resulting chart should looks something like this:
 
-![](www/user_sim.png)
+``` r
+knitr::include_graphics("www/user_sim.png")
+```
+
+<img src="www/user_sim.png" width="500" style="display: block; margin: auto;" />
 
 The results from the full simulation are shown below. All details and
 documentation can be found in the [HTML document](ps2_answers.html).
 
-![](www/ps1_sim.png)
+``` r
+knitr::include_graphics("www/ps1_sim.png")
+```
+
+<img src="www/ps1_sim.png" width="500" style="display: block; margin: auto;" />
 
 ## Gaussian Processes
 
 The first part of [Problem Set 3](ps3_answers.html) …
 
-![](www/gp_reg.png)
+``` r
+knitr::include_graphics("www/gp_reg.png")
+```
+
+<img src="www/gp_reg.png" width="500" style="display: block; margin: auto;" />
+
+## Bayesian Optimization
+
+The Bayes Optizer gradually gets better at estimated the true function
+values. As it explores different points on the test grid uncertainty
+around these points shrinks. Sometimes the overall magnitude of the
+confidence interval suddenly appears to change which corresponds to
+occasions when the estimates of optimal hyperparameters change
+significantly. Eventually the learned function values are very close to
+true function values and the proposed optimum corresponds to the true
+optimum (among the test points).
+
+``` r
+knitr::include_graphics("www/bayes_opt.gif")
+```
+
+<img src="www/bayes_opt.gif" width="500" style="display: block; margin: auto;" />
 
 ## References
 

@@ -102,7 +102,7 @@ acqui_ucb.gp_regression <- function(
   idx_max <- which.max(value_estimate)
   if (verbose==3) {
     points(fn_scale * predictions[,1], col=alpha("blue",0.5), cex=0.8, t="l")
-    points(x=idx_max, y=fn_scale * predictions[idx_max,1], col="blue", cex=1.5, pch=16)
+    abline(v=idx_max, lty=2)
     legend(
       "topright",
       legend=c("True value", "Estimated value"),
@@ -136,7 +136,7 @@ acqui_pi.gp_regression <- function(
   idx_max <- which.max(value_estimate)
   if (verbose==3) {
     points(fn_scale * predictions[,1], col=alpha("blue",0.5), cex=0.8, t="l")
-    points(x=idx_max, y=fn_scale * predictions[idx_max,1], col="blue", cex=1.5, pch=16)
+    abline(v=idx_max, lty=2)
     legend(
       "topright",
       legend=c("True value", "Estimated value"),
@@ -172,7 +172,8 @@ acqui_ei.gp_regression <- function(
   idx_max <- which.max(value_estimate)
   if (verbose==3) {
     points(fn_scale * predictions[,1], col=alpha("blue",0.5), cex=0.8, t="l")
-    points(x=idx_max, y=fn_scale * predictions[idx_max,1], col="blue", cex=1.5, pch=16)
+    abline(v=idx_max, lty=2)
+    # points(x=idx_max, y=fn_scale * predictions[idx_max,1], col="blue", cex=1.5, pch=16)
     legend(
       "topright",
       legend=c("True value", "Estimated value"),

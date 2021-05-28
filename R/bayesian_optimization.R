@@ -1,3 +1,4 @@
+library(R.utils)
 bayesian_optimization <- function(
   objective_fun=branin,
   X,
@@ -13,7 +14,9 @@ bayesian_optimization <- function(
   exploring_rate = 0.5,
   verbose = 1,
   fn_scale = -1,
-  store_path = FALSE
+  store_path = FALSE,
+  max_time_hyper = 100,
+  update_hyper_every = 1
 ) {
 
   # Setup: ----
@@ -35,12 +38,19 @@ bayesian_optimization <- function(
     }
 
     # Update hyperparameters:
-    hyper_params <- tryCatch(
-      optim_hyper(hyper_params, X=X, y=y, kernel_fun = kernel_fun),
-      error = function(e) {
-        return(hyper_params)
-      }
-    )
+    update_this_round <- counter %% update_hyper_every == 0 # update hyper?
+    if (update_this_round) {
+      hyper_params <- tryCatch(
+        withTimeout(
+          optim_hyper(hyper_params, X=X, y=y, kernel_fun = kernel_fun),
+          timeout = max_time_hyper,
+          onTimeout = "error"
+        ),
+        error = function(e) {
+          return(hyper_params)
+        }
+      )
+    }
 
     if (verbose==3) {
       # Plot true function values for X_test:
@@ -61,7 +71,12 @@ bayesian_optimization <- function(
       list(X=X, y=y, X_test = X_test, kernel_fun = kernel_fun),
       hyper_params
     )
-    gp_reg <- do.call(gaussian_process_regression, args = args)
+    gp_reg <- tryCatch(
+      do.call(gaussian_process_regression, args = args),
+      error = function(e) {
+        return(gp_reg)
+      }
+    )
 
     # Run acquisition function:
     X_star <- acquisition_fun(
@@ -203,7 +218,7 @@ plot_path.bayes_optimum <- function(bayes_optimum) {
     geom_point(
       data=optima_path,
       aes(x=point, y=value, colour=variable),
-      cex=2,
+      size=5,
       pch=18
     ) +
     scale_colour_manual(
@@ -212,15 +227,19 @@ plot_path.bayes_optimum <- function(bayes_optimum) {
     ) +
     transition_states(
       t,
-      transition_length = 2,
+      transition_length = 3,
       state_length = 1
-    )+
+    ) +
+    enter_fade() +
+    exit_fade() +
+    ease_aes('linear') +
     labs(
-      title="Iteration: {closest_state}"
+      title="Iteration: {closest_state}",
+      subtitle = "Evolution of learned function. Diamonds are true and estimated optima."
     ) +
     coord_cartesian(ylim=ylim)
 
-  animate(p, width = 400, height = 300)
+  animate(p, width = 500, height = 300,  fps = 3)
 
 }
 

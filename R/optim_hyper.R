@@ -5,7 +5,7 @@ optim_hyper <- function(
   y,
   kernel_fun,
   control = list(
-    maxit=1000,
+    maxit=50,
     fnscale=-1
   ),
   tol=1e-30,

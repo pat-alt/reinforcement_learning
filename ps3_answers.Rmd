@@ -32,20 +32,49 @@ theme_set(theme_bw())
 
 ## Squared exponential kernel
 
-```{r}
+The squared exponential kernel can be implemented in R as follows:
+
+```{r code=readLines("R/kernel_se.R"), eval=FALSE, echo=TRUE}
+```
+
+We can use this kernel function to sample from a corresponding Gaussian process as follows:
+
+```{r code=readLines("R/gaussian_process.R"), eval=FALSE, echo=TRUE}
+```
+
+The `kernel_matrix` function corresponds to $K(\mathbf{X}, \mathbf{X}')$. It simply applies the kernel function $k(\mathbf{x},\mathbf{x}')$ to all pair-wise combinations of samples in $\mathbf{X}$ and $\mathbf{X}'$.
+
+Figure \@ref(fig:samples) shows 5 samples drawn from a Gaussian process with the the specified parameters. The samples look rather noisy because the specified noise variance is relatively high. A smaller choice for that parameter yields samples that are much smoother (Figure \@ref(fig:samples-2)).
+
+```{r samples, echo=TRUE, fig.cap="Samples from a Gaussian process. Shaded area indicates the 95% confidence interval based on the variance prior. High noise variance."}
 set.seed(rand_seed)
 gp_samples <- gaussian_process_sampler(noise_sd=0.1,length_scale=1,signal_sd=1)
 plot(gp_samples)
 ```
 
+```{r samples-2, echo=TRUE, fig.cap="Samples from a Gaussian process. Shaded area indicates the 95% confidence interval based on the variance prior. Low noise variance."}
+set.seed(rand_seed)
+gp_samples <- gaussian_process_sampler(noise_sd=0.00001,length_scale=1,signal_sd=1)
+plot(gp_samples)
+```
+
 ## Gaussian Process Regression
 
-```{r}
+To implement Gaussian Process Regression (GPReg) we first draw a small set of training points at random as well as larger set of (equidistant) test points.
+
+```{r, echo=TRUE}
 set.seed(rand_seed)
 n_train <- 20
 X <- runif(n_train, min = -7, max = 7)
 X_test <- seq(-7,7,length.out=100)
 ```
+
+GPReg can be implemented in R as follows:
+
+```{r code=readLines("R/gaussian_process_regression.R"), echo=TRUE, eval=FALSE}
+```
+
+Applying this function to our train and test data using the default parameters as before yields the following picture:
 
 ```{r}
 set.seed(rand_seed)
@@ -55,7 +84,9 @@ plot(gp_reg)
 ggsave("www/gp_reg.png", width = 7, height = 5)
 ```
 
-```{r}
+Choosing instead a very low value for the length scale yield the following picture:
+
+```{r, echo=TRUE}
 set.seed(rand_seed)
 length_scale <- 0.3
 signal_sd <- 1.08
@@ -74,6 +105,8 @@ gp_reg <- gaussian_process_regression(
 )
 plot(gp_reg)
 ```
+
+Finally, choosing a relatively large value for the length scale, we get the following picture:
 
 ```{r}
 set.seed(rand_seed)
@@ -98,6 +131,10 @@ plot(gp_reg)
 # Bayesian Optimization
 
 ## UCB
+
+Here we will first briefly look at the implementation of Bayesian Optimization in R with UCB as the acquisition function. We shall first generate a small set of training points as well as a grid of pair-wise test point combinations. 
+
+> Note: Because I have implemented everything from scratch and the hyperparameter optimization routine is computationally very expensive, I choose a testing grid that is not very granular. You can increase the `n_test` parameter to use a finer grid.
 
 ```{r}
 set.seed(rand_seed)
@@ -125,8 +162,20 @@ X_test <- as.matrix(
 )
 ```
 
-```{r, eval=FALSE}
-n_iter <- 100
+With these inputs at hand, Bayesian Optimization can be implemented as follows:
+
+```{r code=readLines("R/bayesian_optimization.R"), eval=FALSE, echo=TRUE}
+```
+
+Hyperparameters for the GP are tuned through the following multi-started optimization routine:
+
+```{r code=readLines("R/optim_hyper.R"), eval=FALSE, echo=TRUE}
+```
+
+The code below runs Bayesian Optimization for a number of iterations:
+
+```{r, eval=FALSE, echo=TRUE}
+n_iter <- 50
 bayes_optimum <- bayesian_optimization(
   objective_fun=branin,
   X=X, 
@@ -141,6 +190,18 @@ bayes_optimum <- bayesian_optimization(
 saveRDS(bayes_optimum, file="results/bayes_optimum.rds")
 ```
 
+```{r}
+bayes_optimum <- readRDS("results/bayes_optimum.rds")
+```
+
+### Loss
+
+Figure \@ref(fig:loss) shows the loss as a function of the number of iterations. Evidently, the Bayes Optimization gradually learns the true optimum of the function as it learnds from the observed data.
+
+```{r loss, fig.cap="Loss over time."}
+plot(bayes_optimum)
+```
+
 ### Learning path
 
 ```{r, eval=FALSE}
@@ -148,17 +209,16 @@ plot_path(bayes_optimum)
 anim_save("www/bayes_opt.gif")
 ```
 
-```{r, fig.cap="The learning path of the algorithm."}
+Let us have a quick look at what is actually going on under the hood. Figure \@ref(fig:anim) shows in black the true function values evaluated at the pair-wise test point combinations. The blue line reflects the corresponding posterior means that the Bayes Optimizer learns through time. The blue shaded area indicates the 95% confidence interval based on the learned posterior variances. 
+
+The Bayes Optizer gradually gets better at estimated the true function values. As it explores different points on the test grid uncertainty around these points shrinks. Sometimes the overall magnitude of the confidence interval suddenly appears to change which corresponds to occasions when the estimates of optimal hyperparameters change significantly. Eventually the learned function values are very close to true function values and the proposed optimum corresponds to the true optimum (among the test points).
+
+```{r anim, fig.cap="The learning path of the algorithm."}
 knitr::include_graphics("www/bayes_opt.gif")
 ```
 
-
-### Loss
-
-```{r}
-plot(bayes_optimum)
-```
-
 ## Benchmarking acquisition functions
+
+Finally, the plot below shows the effect of the exploration parameter for different acquisition functions.
 
 
