@@ -5,7 +5,8 @@ packages <- list(
   "scales",
   "Rcpp",
   "ggplot2",
-  "data.table"
+  "data.table",
+  "R.utils"
 )
 invisible(
   lapply(

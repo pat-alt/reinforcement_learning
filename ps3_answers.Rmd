@@ -5,7 +5,7 @@ author: "Patrick Altmeyer"
 date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output: 
   bookdown::html_document2:
-    code_folding: show
+    code_folding: hide
     number_sections: true
     toc: true
     toc_float: true
@@ -219,6 +219,87 @@ knitr::include_graphics("www/bayes_opt.gif")
 
 ## Benchmarking acquisition functions
 
-Finally, the plot below shows the effect of the exploration parameter for different acquisition functions.
+```{r}
+n_iter <- 100
+update_hyper_every <- 5
+exploring_rates <- c(0.001,0.5,100)
+acqui_funs <- list(
+  ucb = acqui_ucb,
+  pi = acqui_pi,
+  ei = acqui_ei
+)
+grid <- CJ(explore=exploring_rates, acqui=names(acqui_funs))
+```
+
+```{r, eval=FALSE}
+sim_output <- lapply(
+  1:nrow(grid),
+  function(i) {
+    time_start <- Sys.time()
+    list2env(c(grid[i,]), envir = environment()) # grid values
+    print(sprintf(
+      "Running for: exploring rate %0.3f, acquisition %s",
+      explore,
+      acqui
+    ))
+    bayes_optimum <- bayesian_optimization(
+      objective_fun=branin,
+      X=X, 
+      X_test = X_test,
+      n_iter=n_iter,
+      hyper_params = hyper_params,
+      verbose = 1,
+      exploring_rate=explore,
+      fn_scale = -1,
+      store_path = TRUE,
+      acquisition_fun = acqui_funs[[acqui]],
+      update_hyper_every = update_hyper_every,
+      max_time_hyper = 120
+    )
+    print(sprintf("Time spent on first sim:"))
+    print(Sys.time()-time_start)
+    return(
+      list(
+        output = bayes_optimum,
+        exploring_rate = explore,
+        acqui_fun = acqui
+      )
+    )
+  }
+)
+saveRDS(sim_output, file="results/bayes_opt_sim.rds")
+```
+
+Finally, Figure \@ref(benchmark) shows the loss evolution with different acquisition functions for varying exploration parameters (by row). For UCB and EI the results are intuitive with the former performing better overall: as the exploration rate increases they are more likely to explore and hence at times commit errors. For PI the results are poor across the board. The choices of the eploration rate may be too high for PI. Another explanation may be that due to computational constraints, I have run the multi-started hyperparameter optimization only every five iterations. 
+
+```{r benchmark, fig.cap="Comparison of loss evolution with different acquisition functions for varying exploration parameters (by row)."}
+sim_output <- readRDS("results/bayes_opt_sim.rds")
+sim_output <- rbindlist(
+  lapply(
+    sim_output,
+    function(i) {
+      loss <- data.table(
+        iter = 1:length(c(i$output$loss)),
+        loss = c(i$output$loss),
+        explore = i$exploring_rate,
+        acqui = i$acqui_fun
+      )
+      return(loss)
+    }
+  )
+)
+p <- ggplot(data=sim_output, aes(x=iter, y=loss, colour=acqui)) +
+  geom_line() +
+  facet_grid(rows = vars(explore)) +
+  scale_color_discrete(
+    name="Acquisition function:"
+  ) +
+  labs(
+    x="Iteration",
+    y="Loss"
+  )
+p
+```
+
 
 
