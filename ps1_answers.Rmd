@@ -1,0 +1,75 @@
+---
+title: "Problem Set 1"
+subtitle: "Dynamic Programming"
+author: "Patrick Altmeyer"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output: 
+  bookdown::html_document2:
+    code_folding: hide
+    number_sections: true
+    toc: true
+    toc_float: true
+bibliography: bib.bib
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+library(data.table)
+library(ggplot2)
+library(scales)
+lapply(
+  list.files("R", pattern = "\\.R"),
+  function(file) {
+    source(file = file.path("R",file))
+  }
+)
+rand_seed <- 123
+theme_set(theme_bw())
+```
+
+# Policy evaluation
+
+```{r}
+# State space:
+state_space <- seq(0,99,by=1)
+# Action space:
+action_space <- c(0.51, 0.6)
+# Reward function:
+reward_fun <- function(state, action) {
+  reward <-  (-1) * ((state/max(state_space+1))^2 + ifelse(action==0.51,0,0.01))
+}
+# Transition function:
+transition_fun <- function(state,action,p) {
+  new_state <- floor(state + rbinom(1,1,p) - rbinom(1,1,action))
+  return(new_state)
+}
+# Discount factor:
+discount_factor <- .9
+```
+
+```{r}
+# Policies:
+lazy <- function(state, action_space) {
+  action <- action_space[1]
+  return(action)
+}
+
+aggressive <- function(state, action_space) {
+  action <- ifelse(state<50, action_space[1], action_space[2])
+  return(action)
+}
+```
+
+
+```{r}
+mdp <- define_mdp(
+  state_space = state_space,
+  action_space = action_space,
+  reward_fun = reward_fun,
+  transition_fun = transition_fun,
+  discount_factor = discount_factor
+)
+```
+
+

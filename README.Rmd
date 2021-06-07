@@ -11,6 +11,10 @@ knitr::opts_chunk$set(
 )
 ```
 
+## Dynamic Programming
+
+
+
 ## Multi-Armed Bandit problems
 
 [Problem Set 2](ps2_answers.html) replicates an empirical evaluation of Thompson Sampling [@chapelle2011empirical]. Code for this problem has been implemented in R and performance-enhanced through `Rcpp` (`C++`).
