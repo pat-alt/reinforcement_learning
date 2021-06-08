@@ -143,7 +143,7 @@ policy_improvement.mdp <- function(mdp, policy, V) {
       if(length(best_action)>1) {
         best_action <- sample(best_action, 1)
       }
-      return(best_action)
+      return(action_space[best_action])
     }
   )
 
@@ -156,12 +156,12 @@ policy_improvement <- function(mdp, policy, V) {
 }
 
 # Policy iteration:
-policy_iteration.mdp <- function(mdp, policy, max_iter=100) {
+policy_iteration.mdp <- function(mdp, policy, max_iter=100, verbose=0) {
 
   policy_stable <- rep(FALSE, length(mdp$state_space))
   iter <- 1
 
-  while (!all(policy_stable) & iter <= max_iter) {
+  while (!all(policy_stable) | iter <= max_iter) {
 
     # Policy evaluation:
     V <- evaluate_policy(mdp, policy)
@@ -169,18 +169,33 @@ policy_iteration.mdp <- function(mdp, policy, max_iter=100) {
     # Policy improvement:
     policy_proposed <- policy_improvement(mdp, policy, V)
 
+    if (verbose==1) {
+      plot(
+        x=mdp$state_space,
+        y=evaluate_policy(mdp, policy_proposed) - V,
+        t="l",
+        main=sprintf("Iteration: %i", iter),
+        xlab="State",
+        ylab="Improvement"
+      )
+      points(
+        x=mdp$state_space,
+        y=evaluate_policy(mdp, policy_proposed) - V,
+        col="red",
+        cex=0.25
+      )
+    }
+
     # Check if stable:
     policy_stable <- policy == policy_proposed
     policy <- policy_proposed
     iter <- iter + 1
 
-    print(data.table(pol=policy, stable=policy_stable))
-
   }
 
   optimal_policy <- list(
     policy = policy,
-    value = evaluate_policy(mpd, policy),
+    value = evaluate_policy(mdp, policy),
     mdp = mdp
   )
 
@@ -188,7 +203,7 @@ policy_iteration.mdp <- function(mdp, policy, max_iter=100) {
 
 }
 
-policy_iteration <- function(mdp, policy, max_iter=100) {
+policy_iteration <- function(mdp, policy, max_iter=100, verbose=0) {
   UseMethod("policy_iteration", mdp)
 }
 
