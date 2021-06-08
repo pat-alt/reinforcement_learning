@@ -31,8 +31,9 @@ theme_set(theme_bw())
 # Policy evaluation
 
 ```{r}
+N <- 100
 # State space:
-state_space <- seq(0,99,by=1)
+state_space <- seq(0,N-1,by=1)
 # Action space:
 action_space <- c(0.51, 0.6)
 # Reward function:
@@ -75,13 +76,14 @@ aggressive <- function(state, action_space) {
 
 
 ```{r}
+p <- 0.5
 mdp <- define_mdp(
   state_space = state_space,
   action_space = action_space,
   reward_fun = reward_fun,
   transition_fun = transition_fun,
   discount_factor = discount_factor,
-  p=0.5
+  p=p
 )
 ```
 
@@ -91,13 +93,14 @@ V_pi_aggr <- evaluate_policy(mdp, policy_fun = aggressive)
 ```
 
 ```{r}
-dt_plot <- data.table(state=1:length(state_space), lazy=V_pi_lazy, aggr=V_pi_aggr)
-dt_plot <- melt(dt_plot, id.vars = "state")
+valuations <- data.table(state=state_space, lazy=V_pi_lazy, aggr=V_pi_aggr)
+dt_plot <- melt(valuations, id.vars = "state")
 ggplot(dt_plot, aes(x=state, y=value, colour=variable)) +
+  geom_hline(aes(yintercept = 0), size=0.25) +
   geom_line() +
   labs(
     x="State",
-    y="Difference"
+    y="Value"
   )
 ```
 
@@ -105,11 +108,18 @@ ggplot(dt_plot, aes(x=state, y=value, colour=variable)) +
 dt_plot <- data.table(state=1:length(state_space), value=V_pi_lazy-V_pi_aggr)
 ggplot(dt_plot, aes(x=state, y=value)) +
   geom_line() +
+  geom_hline(aes(yintercept = 0), size=0.25) +
   labs(
     x="State",
     y="Difference"
   )
 ```
+
+# Policy iteration
+
+
+
+# Value iteration
 
 
 
