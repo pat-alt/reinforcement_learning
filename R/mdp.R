@@ -115,51 +115,81 @@ evaluate_policy <- function(mdp, policy) {
   UseMethod("evaluate_policy", mdp)
 }
 
-policy_improvement.mpd <- function(mdp, policy, V) {
+policy_improvement.mdp <- function(mdp, policy, V) {
 
   n_states <- length(mdp$state_space)
 
   # Initialize:
   policy_stable <- rep(TRUE, length(policy))
-  # Reward vector:
-  r_pi <- reward_pi(mdp, policy)
-  # Transition matrix:
-  P_pi <- transition_pi(mdp, policy)
 
-  # # Recursion:
-  # grid <- sapply(
-  #   1:n_states,
-  #   function(i) {
-  #     pi_s <- policy[i]
-  #     sapply(
-  #       mdp$action_space,
-  #       function(a) {
-  #         # Reward vector:
-  #         r_pi <- reward_pi(mdp, a)
-  #         # Transition matrix:
-  #         P_pi <- transition_pi(mdp, a)
-  #         r_pi_s <- r_pi[i]
-  #         P_pi_s <- P_pi[i,]
-  #         crossprod(P_pi_s,(r_pi_s + mdp$discount_factor * V))
-  #       }
-  #     )
-  #   }
-  # )
-
+  # Recursion:
   grid <- sapply(
     mdp$action_space,
     function(a) {
-      evaluate_policy(mdp, a)
+      # Reward vector:
+      r_pi <- reward_pi(mdp, a)
+      # Transition matrix:
+      P_pi <- transition_pi(mdp, a)
+      P_pi %*% (r_pi + mdp$discount_factor * V)
     }
   )
+
+  proposed_policy <- sapply(
+    1:nrow(grid),
+    function(i) {
+      best_action_value <- max(grid[i,])
+      best_action <- which(grid[i,] == best_action_value)
+      # Break ties:
+      if(length(best_action)>1) {
+        best_action <- sample(best_action, 1)
+      }
+      return(best_action)
+    }
+  )
+
+  return(proposed_policy)
+
+}
+
+policy_improvement <- function(mdp, policy, V) {
+  UseMethod("policy_improvement", mdp)
 }
 
 # Policy iteration:
-policy_iteration.mdp <- function(mdp, policy_init) {
+policy_iteration.mdp <- function(mdp, policy, max_iter=100) {
 
-  # Initialization:
-  V_k <- evaluate_policy(mdp, policy_init)
+  policy_stable <- rep(FALSE, length(mdp$state_space))
+  iter <- 1
 
+  while (!all(policy_stable) & iter <= max_iter) {
+
+    # Policy evaluation:
+    V <- evaluate_policy(mdp, policy)
+
+    # Policy improvement:
+    policy_proposed <- policy_improvement(mdp, policy, V)
+
+    # Check if stable:
+    policy_stable <- policy == policy_proposed
+    policy <- policy_proposed
+    iter <- iter + 1
+
+    print(data.table(pol=policy, stable=policy_stable))
+
+  }
+
+  optimal_policy <- list(
+    policy = policy,
+    value = evaluate_policy(mpd, policy),
+    mdp = mdp
+  )
+
+  return(optimal_policy)
+
+}
+
+policy_iteration <- function(mdp, policy, max_iter=100) {
+  UseMethod("policy_iteration", mdp)
 }
 
 

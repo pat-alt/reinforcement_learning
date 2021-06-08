@@ -47,13 +47,13 @@ transition_fun <- function(new_state,state,action, p) {
   state_diff <- data.table(new_state = new_state, state = state, q=action)
   state_diff[,diff:=new_state-state]
   state_diff[,prob:=0] # initalize all as zero
-  state_diff[diff==1,prob:=(1-p)*q]
+  state_diff[diff==1,prob:=p*(1-q)]
   state_diff[diff==0,prob:=p*q + (1-p)*(1-q)]
-  state_diff[diff==-1,prob:=p*(1-q)]
+  state_diff[diff==-1,prob:=(1-p)*q]
   
   # Boundary cases:
-  state_diff[state==min(state) & new_state==min(state),prob:=1 - (1-p) * q]
-  state_diff[state==max(state) & new_state==max(state),prob:=1 - p * (1-q)]
+  state_diff[state==min(state) & new_state==min(state),prob:=1 - p * (1-q)]
+  state_diff[state==max(state) & new_state==max(state),prob:=1 - (1-p) * q]
   
   return(state_diff$prob)
 }
@@ -88,14 +88,12 @@ mdp <- define_mdp(
 ```
 
 ```{r}
-V_pi_lazy <- evaluate_policy(
-  mdp, 
-  policy = lazy(state = mdp$state_space, action_space = mdp$action_space)
-)
-V_pi_aggr <- evaluate_policy(
-  mdp, 
-  policy = aggressive(state = mdp$state_space, action_space = mdp$action_space)
-)
+# Lazy:
+policy_lazy <- lazy(state = mdp$state_space, action_space = mdp$action_space)
+V_pi_lazy <- evaluate_policy(mdp, policy = policy_lazy)
+# Aggressive:
+policy_aggr <- aggressive(state = mdp$state_space, action_space = mdp$action_space)
+V_pi_aggr <- evaluate_policy(mdp, policy = policy_aggr)
 ```
 
 ```{r}
@@ -123,6 +121,9 @@ ggplot(dt_plot, aes(x=state, y=value)) +
 
 # Policy iteration
 
+```{r}
+
+```
 
 
 # Value iteration
