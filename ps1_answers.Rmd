@@ -88,8 +88,14 @@ mdp <- define_mdp(
 ```
 
 ```{r}
-V_pi_lazy <- evaluate_policy(mdp, policy_fun = lazy)
-V_pi_aggr <- evaluate_policy(mdp, policy_fun = aggressive)
+V_pi_lazy <- evaluate_policy(
+  mdp, 
+  policy = lazy(state = mdp$state_space, action_space = mdp$action_space)
+)
+V_pi_aggr <- evaluate_policy(
+  mdp, 
+  policy = aggressive(state = mdp$state_space, action_space = mdp$action_space)
+)
 ```
 
 ```{r}

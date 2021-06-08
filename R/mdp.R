@@ -1,5 +1,5 @@
 library(data.table)
-# Markov Decision Process:
+# Markov Decision Process: ----
 define_mdp <- function(
   state_space,
   action_space,
@@ -26,6 +26,7 @@ define_mdp <- function(
   return(mdp)
 }
 
+# Reward function: ----
 reward_pi.mdp <- function(mdp, policy) {
 
   # Setup: ----
@@ -66,6 +67,7 @@ reward_pi <- function(mdp, policy) {
   UseMethod("reward_pi", mdp)
 }
 
+# Transition function: ----
 transition_pi.mdp <- function(mdp, policy) {
 
   # Setup: ----
@@ -92,13 +94,8 @@ transition_pi <- function(mdp, policy) {
   UseMethod("transition_pi", mdp)
 }
 
-evaluate_policy.mdp <- function(mdp, policy_fun) {
-
-  list2env(mdp, envir = environment())
-  n_states <- length(state_space)
-
-  # Policy:
-  policy <- policy_fun(state=state_space, action_space = action_space)
+# Policy evaluation: ----
+evaluate_policy.mdp <- function(mdp, policy) {
 
   # Reward vector:
   r_pi <- reward_pi(mdp, policy)
@@ -107,13 +104,63 @@ evaluate_policy.mdp <- function(mdp, policy_fun) {
   P_pi <- transition_pi(mdp, policy)
 
   # Value function:
-  V_pi <- solve((diag(n_states) - discount_factor * P_pi), r_pi)
+  n_states <- length(mdp$state_space)
+  V_pi <- solve((diag(n_states) - mdp$discount_factor * P_pi), r_pi)
 
   return(V_pi)
 
 }
 
-evaluate_policy <- function(mdp, policy_fun) {
+evaluate_policy <- function(mdp, policy) {
   UseMethod("evaluate_policy", mdp)
 }
+
+policy_improvement.mpd <- function(mdp, policy, V) {
+
+  n_states <- length(mdp$state_space)
+
+  # Initialize:
+  policy_stable <- rep(TRUE, length(policy))
+  # Reward vector:
+  r_pi <- reward_pi(mdp, policy)
+  # Transition matrix:
+  P_pi <- transition_pi(mdp, policy)
+
+  # # Recursion:
+  # grid <- sapply(
+  #   1:n_states,
+  #   function(i) {
+  #     pi_s <- policy[i]
+  #     sapply(
+  #       mdp$action_space,
+  #       function(a) {
+  #         # Reward vector:
+  #         r_pi <- reward_pi(mdp, a)
+  #         # Transition matrix:
+  #         P_pi <- transition_pi(mdp, a)
+  #         r_pi_s <- r_pi[i]
+  #         P_pi_s <- P_pi[i,]
+  #         crossprod(P_pi_s,(r_pi_s + mdp$discount_factor * V))
+  #       }
+  #     )
+  #   }
+  # )
+
+  grid <- sapply(
+    mdp$action_space,
+    function(a) {
+      evaluate_policy(mdp, a)
+    }
+  )
+}
+
+# Policy iteration:
+policy_iteration.mdp <- function(mdp, policy_init) {
+
+  # Initialization:
+  V_k <- evaluate_policy(mdp, policy_init)
+
+}
+
+
 
