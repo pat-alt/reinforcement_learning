@@ -94,7 +94,7 @@ transition_pi <- function(mdp, policy) {
   UseMethod("transition_pi", mdp)
 }
 
-# Policy evaluation: ----
+# Power iteration: ----
 evaluate_policy.mdp <- function(mdp, policy) {
 
   # Reward vector:
@@ -115,7 +115,43 @@ evaluate_policy <- function(mdp, policy) {
   UseMethod("evaluate_policy", mdp)
 }
 
-policy_improvement.mdp <- function(mdp, policy, V) {
+# Policy evaluation: ----
+power_iteration.mdp <- function(mdp, policy, V, accuracy=1e-0, max_iter=200) {
+
+  # Setup:
+  delta <- Inf
+  finished <- FALSE
+  iter <- 1
+
+  while(!finished) {
+
+    # Reward vector:
+    r_pi <- reward_pi(mdp, policy)
+
+    # Transition matrix:
+    P_pi <- transition_pi(mdp, policy)
+
+    # Value function:
+    V_new <- r_pi + P_pi %*% (mdp$discount_factor * V)
+
+    # Observe and update:
+    delta <- min(delta, max(abs(V_new-V)))
+    V <- V_new
+    iter <- iter + 1
+    finished <- delta < accuracy | iter == max_iter
+
+  }
+
+  return(V)
+
+}
+
+power_iteration <- function(mdp, policy, V) {
+  UseMethod("power_iteration", mdp)
+}
+
+# Policy improvement: ----
+policy_improvement.mdp <- function(mdp, policy, V, accuracy=1e-1, max_iter=200) {
 
   n_states <- length(mdp$state_space)
 
@@ -127,10 +163,11 @@ policy_improvement.mdp <- function(mdp, policy, V) {
     mdp$action_space,
     function(a) {
       # Reward vector:
-      r_pi <- reward_pi(mdp, a)
+      r_pi <- as.matrix(reward_pi(mdp, a))
       # Transition matrix:
       P_pi <- transition_pi(mdp, a)
-      P_pi %*% (r_pi + mdp$discount_factor * V)
+      # P_pi %*% (r_pi + mdp$discount_factor * V)
+      r_pi + P_pi %*% (mdp$discount_factor * V)
     }
   )
 
@@ -155,55 +192,93 @@ policy_improvement <- function(mdp, policy, V) {
   UseMethod("policy_improvement", mdp)
 }
 
-# Policy iteration:
-policy_iteration.mdp <- function(mdp, policy, max_iter=100, verbose=0) {
+# Policy iteration: ----
+policy_iteration.mdp <- function(
+  mdp,
+  policy=NULL,
+  max_iter=100,
+  verbose=0
+) {
+
+  if (is.null(policy)) {
+    policy <- sample(mdp$action_space, length(mdp$state_space), replace = TRUE)
+  }
 
   policy_stable <- rep(FALSE, length(mdp$state_space))
   iter <- 1
+  V <- rep(-10, length(mdp$state_space)) # initialize V
+  unfinished <- TRUE
+  policy_path <- data.table()
+  if (verbose == 1) {
+    plot(
+      x=mdp$state_space,
+      y=V,
+      t="l",
+      xlab="State",
+      ylab="Improvement",
+      ylim=c(-10,0),
+      main = sprintf("Iterations: %i", max_iter)
+    )
+  }
 
-  while (!all(policy_stable) | iter <= max_iter) {
+  while (unfinished) {
 
     # Policy evaluation:
-    V <- evaluate_policy(mdp, policy)
+    V <- power_iteration(mdp, policy, V)
 
     # Policy improvement:
     policy_proposed <- policy_improvement(mdp, policy, V)
 
-    if (verbose==1) {
-      plot(
-        x=mdp$state_space,
-        y=evaluate_policy(mdp, policy_proposed) - V,
-        t="l",
-        main=sprintf("Iteration: %i", iter),
-        xlab="State",
-        ylab="Improvement"
-      )
-      points(
-        x=mdp$state_space,
-        y=evaluate_policy(mdp, policy_proposed) - V,
-        col="red",
-        cex=0.25
-      )
-    }
-
     # Check if stable:
     policy_stable <- policy == policy_proposed
+    policy_path <- rbind(
+      policy_path,
+      data.table(policy = policy, proposed = policy_proposed, iter=iter)
+    )
     policy <- policy_proposed
     iter <- iter + 1
+    unfinished <- (!all(policy_stable)) | iter <= max_iter
+
+    if (verbose==1) {
+      if (!unfinished) {
+        points(
+          x=mdp$state_space,
+          y=V,
+          t="l",
+          col="blue",
+          lwd=2
+        )
+      } else {
+        points(
+          x=mdp$state_space,
+          y=V,
+          t="l",
+          col=alpha("black",0.5),
+          lty="dotted"
+        )
+      }
+    }
 
   }
 
   optimal_policy <- list(
     policy = policy,
     value = evaluate_policy(mdp, policy),
-    mdp = mdp
+    mdp = mdp,
+    policy_path = policy_path,
+    max_iter = max_iter
   )
 
   return(optimal_policy)
 
 }
 
-policy_iteration <- function(mdp, policy, max_iter=100, verbose=0) {
+policy_iteration <- function(
+  mdp,
+  policy=NULL,
+  max_iter=100,
+  verbose=0
+) {
   UseMethod("policy_iteration", mdp)
 }
 

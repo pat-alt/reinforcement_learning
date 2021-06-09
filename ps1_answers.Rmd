@@ -121,8 +121,23 @@ ggplot(dt_plot, aes(x=state, y=value)) +
 
 # Policy iteration
 
-```{r}
+```{r, eval=FALSE, include=FALSE}
+png("www/policy_iteration.png", width = 600, height = 600)
+max_iter <- c(10,20,50,100)
+par(mfrow=rep(sqrt(length(max_iter)),2))
+policy_iter_results <- list()
+for (i in 1:length(max_iter)) {
+  policy_iter_results[[i]] <- policy_iteration(
+    mdp = mdp,
+    max_iter = max_iter[i],
+    verbose = 1 # to produce plot 
+  )
+}
+dev.off()
+```
 
+```{r pol-it, fig.cap="Policy iteration after 10, 20, 50 and 100 iterations. The blue line represents the value function corresponding to the final estimate of the optimal value function."}
+knitr::include_graphics("www/policy_iteration.png")
 ```
 
 
