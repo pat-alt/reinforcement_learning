@@ -35,11 +35,11 @@ rand_seed <- 123
 theme_set(theme_bw())
 ```
 
-
-
 # Policy evaluation
 
-```{r}
+The first thing to do is to define the Markov Decision Process (MDP). It is useful to implement the MDP as its own class and the different functions and algorithms as its corresponding methods. The [mdp.R](R/mdp.R) script contains the code that implements all of this. To inspect the code, either open the script directly or instead inspect the companion [code report](R/mdp.html). The code chunk below defines the parameters and then eventually uses them to define the MDP.
+
+```{r, echo=TRUE}
 N <- 100
 # State space:
 state_space <- seq(0,N-1,by=1)
@@ -55,7 +55,7 @@ transition_fun <- function(new_state,state,action, p) {
   # Standard rule:
   state_diff <- data.table(new_state = new_state, state = state, q=action)
   state_diff[,diff:=new_state-state]
-  state_diff[,prob:=0] # initalize all as zero
+  state_diff[,prob:=0] # initialize all as zero
   state_diff[diff==1,prob:=p*(1-q)]
   state_diff[diff==0,prob:=p*q + (1-p)*(1-q)]
   state_diff[diff==-1,prob:=(1-p)*q]
@@ -68,9 +68,22 @@ transition_fun <- function(new_state,state,action, p) {
 }
 # Discount factor:
 discount_factor <- .9
+# Additional arguments:
+p <- 0.5
+# Define the MDP:
+mdp <- define_mdp(
+  state_space = state_space,
+  action_space = action_space,
+  reward_fun = reward_fun,
+  transition_fun = transition_fun,
+  discount_factor = discount_factor,
+  p=p
+)
 ```
 
-```{r}
+The following to chunks first define our two policies (lazy and aggressive), then they apply the policies and finally evaluate them using the closed-form solution for the limit of the power iteration. Figure \@ref(fig:lazy-aggr) plots the difference between the value of the lazy and the aggressive policy. Evidently, the lazy policy outperforms the aggressive policy for states around 50-60, but then loses significantly for later states around 70-90 up until the terminal state. This is intuitive: for very long queue lengths it pays off to take high action (until it does not any more in the terminal state, where the length cannot increase any more anyway).
+
+```{r, echo=TRUE}
 # Policies:
 lazy <- function(state, action_space) {
   action <- rep(action_space[1], length(state))
@@ -83,20 +96,7 @@ aggressive <- function(state, action_space) {
 }
 ```
 
-
-```{r}
-p <- 0.5
-mdp <- define_mdp(
-  state_space = state_space,
-  action_space = action_space,
-  reward_fun = reward_fun,
-  transition_fun = transition_fun,
-  discount_factor = discount_factor,
-  p=p
-)
-```
-
-```{r}
+```{r, echo=TRUE}
 # Lazy:
 policy_lazy <- lazy(state = mdp$state_space, action_space = mdp$action_space)
 V_pi_lazy <- evaluate_policy(mdp, policy = policy_lazy)
@@ -132,6 +132,38 @@ ggplot(dt_plot, aes(x=state, y=value)) +
 \pagebreak
 
 # Value Iteration and Policy Iteration
+
+Now we will estimate the optimal policy both through Value Iteration and Policy Iteration. The key steps of **Value Iteration** involve the following
+
+```{r, eval=FALSE, echo=TRUE}
+# 1.) Value function:
+V_new <- policy_improvement(mdp, V, output_type = "value")
+
+# 2.) Observe and update:
+delta <- min(delta, max(abs(V_new-V)))
+V <- V_new
+iter <- iter + 1
+finished <- (delta < accuracy) | (iter == max_iter)
+```
+
+where `accuracy` defines how accurate we want the estimation to be as in @sutton2018reinforcement. The key steps of **Policy Iteration** are the following
+
+```{r, eval=FALSE, echo=TRUE}
+# 1.) Policy evaluation:
+V <- power_iteration(mdp, policy, V, accuracy = accuracy)
+
+# 2.) Policy improvement:
+policy_proposed <- policy_improvement(mdp, V)
+
+# 3.) Check if stable:
+policy_stable <- policy == policy_proposed
+iter <- iter + 1
+finished <- all(policy_stable) | iter == max_iter
+```
+
+where as in @sutton2018reinforcement convergence is reached when the policy from one iteration to the next is stable. As mentioned above the full code can be inspected in the corresponding [report](R/mdp.html).
+
+Figures \@ref(fig:val-it) and \@ref(fig:pol-it) show the results of running Value and Policy Iteration, respectively, for different numbers of iterations. Figure \@ref(fig:val-it) illustrates nicely how Value Iteration gradually learns the optimal policy.
 
 ```{r}
 max_iter <- c(10,20,50,100)
