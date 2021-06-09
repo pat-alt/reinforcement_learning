@@ -94,7 +94,7 @@ transition_pi <- function(mdp, policy) {
   UseMethod("transition_pi", mdp)
 }
 
-# Power iteration: ----
+# Evaluate policy: ----
 evaluate_policy.mdp <- function(mdp, policy) {
 
   # Reward vector:
@@ -115,7 +115,7 @@ evaluate_policy <- function(mdp, policy) {
   UseMethod("evaluate_policy", mdp)
 }
 
-# Policy evaluation: ----
+# Power iteration: ----
 power_iteration.mdp <- function(mdp, policy, V, accuracy=1e-0, max_iter=200) {
 
   # Setup:
@@ -146,17 +146,18 @@ power_iteration.mdp <- function(mdp, policy, V, accuracy=1e-0, max_iter=200) {
 
 }
 
-power_iteration <- function(mdp, policy, V) {
+power_iteration <- function(mdp, policy, V, accuracy=1e-0, max_iter=200) {
   UseMethod("power_iteration", mdp)
 }
 
 # Policy improvement: ----
-policy_improvement.mdp <- function(mdp, policy, V, accuracy=1e-1, max_iter=200) {
+policy_improvement.mdp <- function(
+  mdp,
+  V,
+  output_type="policy"
+) {
 
   n_states <- length(mdp$state_space)
-
-  # Initialize:
-  policy_stable <- rep(TRUE, length(policy))
 
   # Recursion:
   grid <- sapply(
@@ -166,10 +167,11 @@ policy_improvement.mdp <- function(mdp, policy, V, accuracy=1e-1, max_iter=200) 
       r_pi <- as.matrix(reward_pi(mdp, a))
       # Transition matrix:
       P_pi <- transition_pi(mdp, a)
-      # P_pi %*% (r_pi + mdp$discount_factor * V)
       r_pi + P_pi %*% (mdp$discount_factor * V)
     }
   )
+
+  V_star <- apply(grid, 1, max)
 
   proposed_policy <- sapply(
     1:nrow(grid),
@@ -184,11 +186,21 @@ policy_improvement.mdp <- function(mdp, policy, V, accuracy=1e-1, max_iter=200) 
     }
   )
 
-  return(proposed_policy)
+  output <- switch(
+    output_type,
+    policy = proposed_policy,
+    value = V_star
+  )
+
+  return(output)
 
 }
 
-policy_improvement <- function(mdp, policy, V) {
+policy_improvement <- function(
+  mdp,
+  V,
+  output_type="policy"
+) {
   UseMethod("policy_improvement", mdp)
 }
 
@@ -196,19 +208,24 @@ policy_improvement <- function(mdp, policy, V) {
 policy_iteration.mdp <- function(
   mdp,
   policy=NULL,
+  accuracy=1e-5,
   max_iter=100,
-  verbose=0
+  verbose=0,
+  V=NULL
 ) {
 
+  # Setup:
   if (is.null(policy)) {
     policy <- sample(mdp$action_space, length(mdp$state_space), replace = TRUE)
   }
-
   policy_stable <- rep(FALSE, length(mdp$state_space))
   iter <- 1
-  V <- rep(-10, length(mdp$state_space)) # initialize V
-  unfinished <- TRUE
+  if (is.null(V)) {
+    V <- rep(-10, length(mdp$state_space)) # initialize V
+  }
+  finished <- FALSE
   policy_path <- data.table()
+
   if (verbose == 1) {
     plot(
       x=mdp$state_space,
@@ -216,18 +233,18 @@ policy_iteration.mdp <- function(
       t="l",
       xlab="State",
       ylab="Improvement",
-      ylim=c(-10,0),
-      main = sprintf("Iterations: %i", max_iter)
+      ylim=c(min(V),0),
+      main = sprintf("Iterations: %i; Accuracy: %0.2e", max_iter, accuracy)
     )
   }
 
-  while (unfinished) {
+  while (!finished) {
 
     # Policy evaluation:
-    V <- power_iteration(mdp, policy, V)
+    V <- power_iteration(mdp, policy, V, accuracy = accuracy)
 
     # Policy improvement:
-    policy_proposed <- policy_improvement(mdp, policy, V)
+    policy_proposed <- policy_improvement(mdp, V)
 
     # Check if stable:
     policy_stable <- policy == policy_proposed
@@ -237,10 +254,10 @@ policy_iteration.mdp <- function(
     )
     policy <- policy_proposed
     iter <- iter + 1
-    unfinished <- (!all(policy_stable)) | iter <= max_iter
+    finished <- all(policy_stable) | iter == max_iter
 
     if (verbose==1) {
-      if (!unfinished) {
+      if (finished) {
         points(
           x=mdp$state_space,
           y=V,
@@ -266,7 +283,8 @@ policy_iteration.mdp <- function(
     value = evaluate_policy(mdp, policy),
     mdp = mdp,
     policy_path = policy_path,
-    max_iter = max_iter
+    max_iter = max_iter,
+    converged_after = iter
   )
 
   return(optimal_policy)
@@ -276,10 +294,102 @@ policy_iteration.mdp <- function(
 policy_iteration <- function(
   mdp,
   policy=NULL,
+  accuracy=1e-5,
   max_iter=100,
-  verbose=0
+  verbose=0,
+  V=NULL
 ) {
   UseMethod("policy_iteration", mdp)
+}
+
+# Value iteration: ----
+value_iteration.mdp <- function(
+  mdp,
+  max_iter=100,
+  accuracy=1e-5,
+  verbose=0,
+  V = NULL
+) {
+
+  # Setup:
+  if (is.null(V)) {
+    V <- rep(-10, length(mdp$state_space)) # initialize V
+  }
+  # Following Sutton (2018), set terminal state to 0. Not found to be useful,
+  # so commented out.
+  # V[length(mdp$state_space)] <- 0
+  finished <- FALSE
+  delta <- Inf
+  iter <- 1
+
+  if (verbose == 1) {
+    plot(
+      x=mdp$state_space,
+      y=V,
+      t="l",
+      xlab="State",
+      ylab="Improvement",
+      ylim=c(min(V),0),
+      main = sprintf("Iterations: %i; Accuracy: %0.2e", max_iter, accuracy)
+    )
+  }
+
+  while(!finished) {
+
+    # Value function:
+    V_new <- policy_improvement(mdp, V, output_type = "value")
+
+    # Observe and update:
+    delta <- min(delta, max(abs(V_new-V)))
+    V <- V_new
+    iter <- iter + 1
+    finished <- (delta < accuracy) | (iter == max_iter)
+
+    if (verbose==1) {
+      if (finished) {
+        points(
+          x=mdp$state_space,
+          y=V,
+          t="l",
+          col="blue",
+          lwd=2
+        )
+      } else {
+        points(
+          x=mdp$state_space,
+          y=V,
+          t="l",
+          col=alpha("black",0.5),
+          lty="dotted"
+        )
+      }
+    }
+
+  }
+
+  # Compute implied deterministic policy:
+  implied_policy <- policy_improvement(mdp, V)
+  # Evaluate corresponding value:
+  implied_value <- evaluate_policy(mdp, implied_policy)
+
+  optimal_policy <- list(
+    policy = implied_policy,
+    value = implied_value,
+    mdp = mdp,
+    max_iter = max_iter,
+    converged_after = iter
+  )
+
+}
+
+value_iteration <- function(
+  mdp,
+  max_iter=100,
+  accuracy=1e-5,
+  verbose=0,
+  V = NULL
+) {
+  UseMethod("value_iteration", mdp)
 }
 
 

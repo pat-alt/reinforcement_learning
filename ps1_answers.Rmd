@@ -140,7 +140,6 @@ dev.off()
 knitr::include_graphics("www/policy_iteration.png")
 ```
 
-
 # Value iteration
 
 
