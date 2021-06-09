@@ -4,6 +4,12 @@ subtitle: "Dynamic Programming"
 author: "Patrick Altmeyer"
 date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output: 
+  bookdown::pdf_document2:
+    number_sections: true
+    toc: false
+    includes:
+      in_header: preamble.tex
+      before_body: before_body.tex
   bookdown::html_document2:
     code_folding: hide
     number_sections: true
@@ -28,6 +34,8 @@ lapply(
 rand_seed <- 123
 theme_set(theme_bw())
 ```
+
+
 
 # Policy evaluation
 
@@ -120,6 +128,9 @@ ggplot(dt_plot, aes(x=state, y=value)) +
   )
 ```
 
+\FloatBarrier
+\pagebreak
+
 # Value Iteration and Policy Iteration
 
 ```{r}
@@ -176,7 +187,7 @@ policy_iter_results <- readRDS("results/policy_iter.rds")
 pol_it <- policy_iter_results[[4]]
 ```
 
-```{r}
+```{r rand, fig.cap="Initializing with random values."}
 par(mfrow=c(1,1))
 set.seed(123)
 V_rand <- rnorm(length(mdp$state_space), mean=-12)
@@ -240,7 +251,7 @@ mb <- microbenchmark(
 saveRDS(mb, file="results/mb_iter.rds")
 ```
 
-```{r mb, message=FALSE, fig.cap="Microbenchmark of computational times for Value Iteration (`val_it`) and Policy Iteration (`pol_it`)"}
+```{r mb, message=FALSE, fig.cap="Microbenchmark of computational times for Value Iteration and Policy Iteration."}
 mb <- readRDS(file="results/mb_iter.rds")
 autoplot(mb)
 ```

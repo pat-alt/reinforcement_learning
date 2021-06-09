@@ -1,5 +1,14 @@
+#' ---
+#' title: "Code used for Markov Decision Process problems"
+#' author: Patrick Altmeyer
+#' output:
+#'  html_document:
+#'    default
+#' ---
+#+ setup
 library(data.table)
-# Markov Decision Process: ----
+#' Markov decision process:
+#+ mdp
 define_mdp <- function(
   state_space,
   action_space,
@@ -26,7 +35,8 @@ define_mdp <- function(
   return(mdp)
 }
 
-# Reward function: ----
+#' Reward function:
+#+ reward-fun
 reward_pi.mdp <- function(mdp, policy) {
 
   # Setup: ----
@@ -67,7 +77,8 @@ reward_pi <- function(mdp, policy) {
   UseMethod("reward_pi", mdp)
 }
 
-# Transition function: ----
+#' Transition function:
+#+ trans-fun
 transition_pi.mdp <- function(mdp, policy) {
 
   # Setup: ----
@@ -94,7 +105,8 @@ transition_pi <- function(mdp, policy) {
   UseMethod("transition_pi", mdp)
 }
 
-# Evaluate policy: ----
+#' Evaluate policy:
+#+ eval-pol
 evaluate_policy.mdp <- function(mdp, policy) {
 
   # Reward vector:
@@ -115,7 +127,8 @@ evaluate_policy <- function(mdp, policy) {
   UseMethod("evaluate_policy", mdp)
 }
 
-# Power iteration: ----
+#' Power iteration:
+#+ power-it
 power_iteration.mdp <- function(mdp, policy, V, accuracy=1e-0, max_iter=1000) {
 
   # Setup:
@@ -150,7 +163,8 @@ power_iteration <- function(mdp, policy, V, accuracy=1e-0, max_iter=200) {
   UseMethod("power_iteration", mdp)
 }
 
-# Policy improvement: ----
+#' Policy improvement:
+#+ pol-imp
 policy_improvement.mdp <- function(
   mdp,
   V,
@@ -204,7 +218,8 @@ policy_improvement <- function(
   UseMethod("policy_improvement", mdp)
 }
 
-# Policy iteration: ----
+#' Policy iteration:
+#+ pol-it
 policy_iteration.mdp <- function(
   mdp,
   policy=NULL,
@@ -302,7 +317,8 @@ policy_iteration <- function(
   UseMethod("policy_iteration", mdp)
 }
 
-# Value iteration: ----
+#' Value iteration:
+#+ val-it
 value_iteration.mdp <- function(
   mdp,
   max_iter=100,
