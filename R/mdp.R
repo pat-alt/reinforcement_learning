@@ -116,7 +116,7 @@ evaluate_policy <- function(mdp, policy) {
 }
 
 # Power iteration: ----
-power_iteration.mdp <- function(mdp, policy, V, accuracy=1e-0, max_iter=200) {
+power_iteration.mdp <- function(mdp, policy, V, accuracy=1e-0, max_iter=1000) {
 
   # Setup:
   delta <- Inf
@@ -240,13 +240,13 @@ policy_iteration.mdp <- function(
 
   while (!finished) {
 
-    # Policy evaluation:
+    # 1.) Policy evaluation:
     V <- power_iteration(mdp, policy, V, accuracy = accuracy)
 
-    # Policy improvement:
+    # 2.) Policy improvement:
     policy_proposed <- policy_improvement(mdp, V)
 
-    # Check if stable:
+    # 3.) Check if stable:
     policy_stable <- policy == policy_proposed
     policy_path <- rbind(
       policy_path,
@@ -336,10 +336,10 @@ value_iteration.mdp <- function(
 
   while(!finished) {
 
-    # Value function:
+    # 1.) Value function:
     V_new <- policy_improvement(mdp, V, output_type = "value")
 
-    # Observe and update:
+    # 2.) Observe and update:
     delta <- min(delta, max(abs(V_new-V)))
     V <- V_new
     iter <- iter + 1

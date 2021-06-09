@@ -14,10 +14,11 @@ bibliography: bib.bib
 
 ```{r setup, include=FALSE}
 rm(list=ls())
-knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+knitr::opts_chunk$set(echo = FALSE, fig.align = "center", out.width = 500)
 library(data.table)
 library(ggplot2)
 library(scales)
+library(microbenchmark)
 lapply(
   list.files("R", pattern = "\\.R"),
   function(file) {
@@ -96,7 +97,7 @@ policy_aggr <- aggressive(state = mdp$state_space, action_space = mdp$action_spa
 V_pi_aggr <- evaluate_policy(mdp, policy = policy_aggr)
 ```
 
-```{r}
+```{r, eval=FALSE}
 valuations <- data.table(state=state_space, lazy=V_pi_lazy, aggr=V_pi_aggr)
 dt_plot <- melt(valuations, id.vars = "state")
 ggplot(dt_plot, aes(x=state, y=value, colour=variable)) +
@@ -108,7 +109,7 @@ ggplot(dt_plot, aes(x=state, y=value, colour=variable)) +
   )
 ```
 
-```{r}
+```{r lazy-aggr, fig.cap="Comparison of lazy and aggressive policy."}
 dt_plot <- data.table(state=1:length(state_space), value=V_pi_lazy-V_pi_aggr)
 ggplot(dt_plot, aes(x=state, y=value)) +
   geom_line() +
@@ -119,28 +120,131 @@ ggplot(dt_plot, aes(x=state, y=value)) +
   )
 ```
 
-# Policy iteration
+# Value Iteration and Policy Iteration
+
+```{r}
+max_iter <- c(10,20,50,100)
+accuracy <- 1e-4
+```
+
+```{r, eval=FALSE, include=F}
+# Value Iteration
+png("www/value_iteration.png", width = 600, height = 600)
+par(mfrow=rep(sqrt(length(max_iter)),2))
+value_iter_results <- list()
+for (i in 1:length(max_iter)) {
+  value_iter_results[[i]] <- value_iteration(
+    mdp = mdp,
+    max_iter = max_iter[i],
+    verbose = 1, # to produce plot
+    accuracy = accuracy
+  )
+}
+saveRDS(value_iter_results, file="results/value_iter.rds")
+dev.off()
+```
+
+```{r val-it, fig.cap="Value Iteration with 10, 20, 50 and 100 iterations. The blue line represents the value function corresponding to the final estimate of the optimal value function."}
+knitr::include_graphics("www/value_iteration.png")
+```
 
 ```{r, eval=FALSE, include=FALSE}
+# Policy Iteration:
 png("www/policy_iteration.png", width = 600, height = 600)
-max_iter <- c(10,20,50,100)
 par(mfrow=rep(sqrt(length(max_iter)),2))
 policy_iter_results <- list()
 for (i in 1:length(max_iter)) {
   policy_iter_results[[i]] <- policy_iteration(
     mdp = mdp,
     max_iter = max_iter[i],
-    verbose = 1 # to produce plot 
+    verbose = 1, # to produce plot 
+    accuracy = accuracy
   )
 }
+saveRDS(policy_iter_results, file="results/policy_iter.rds")
 dev.off()
 ```
 
-```{r pol-it, fig.cap="Policy iteration after 10, 20, 50 and 100 iterations. The blue line represents the value function corresponding to the final estimate of the optimal value function."}
+```{r pol-it, fig.cap="Policy Iteration with 10, 20, 50 and 100 iterations. The blue line represents the value function corresponding to the final estimate of the optimal value function."}
 knitr::include_graphics("www/policy_iteration.png")
 ```
 
-# Value iteration
+```{r}
+value_iter_results <- readRDS("results/value_iter.rds")
+val_it <- value_iter_results[[4]]
+policy_iter_results <- readRDS("results/policy_iter.rds")
+pol_it <- policy_iter_results[[4]]
+```
+
+```{r}
+par(mfrow=c(1,1))
+set.seed(123)
+V_rand <- rnorm(length(mdp$state_space), mean=-12)
+value_iteration(mdp, verbose = 1, accuracy = 1e-3, V=V_rand)
+```
+
+```{r comparison, fig.height=3, fig.width=7, fig.cap="Improvement of estimated optimal policy compared to lazy and aggressive policy."}
+par(mfrow=c(1,2))
+plot(
+  x=mdp$state_space, 
+  y=val_it$value-V_pi_lazy,
+  main="Lazy",
+  xlab = "State",
+  ylab = "Optimal - Lazy",
+  t="h",
+  lwd=0.5
+)
+points(
+  x=mdp$state_space, 
+  y=val_it$value-V_pi_lazy,
+  col="blue",
+  cex=0.5
+)
+abline(h=0)
+plot(
+  x=mdp$state_space, 
+  y=val_it$value-V_pi_aggr,
+  main="Aggressive",
+  xlab = "State",
+  ylab = "Optimal - Aggressive",
+  t="h",
+  lwd=0.5
+)
+points(
+  x=mdp$state_space, 
+  y=val_it$value-V_pi_aggr,
+  col="blue",
+  cex=0.5
+)
+abline(h=0)
+par(mfrow=c(1,1))
+```
+
+```{r num-iter}
+num_iter <- data.table(
+  value_iter = sapply(value_iter_results, function(i) i$converged_after),
+  policy_iter = sapply(policy_iter_results, function(i) i$converged_after)
+)
+knitr::kable(
+  num_iter, 
+  col.names = c("Value Iteration", "Policy Iteration"),
+  caption = "Number of iterations until convergence or timeout is reached."
+)
+```
+
+```{r, eval=FALSE}
+mb <- microbenchmark(
+  val_it = value_iteration(mdp, accuracy = 1e-3, max_iter = 100),
+  pol_it = policy_iteration(mdp, accuracy = 1e-3, max_iter = 100)
+)
+saveRDS(mb, file="results/mb_iter.rds")
+```
+
+```{r mb, message=FALSE, fig.cap="Microbenchmark of computational times for Value Iteration (`val_it`) and Policy Iteration (`pol_it`)"}
+mb <- readRDS(file="results/mb_iter.rds")
+autoplot(mb)
+```
+
 
 
 
