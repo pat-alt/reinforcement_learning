@@ -1,4 +1,8 @@
 
+> NOTE: Exercises were either proposed or designed by the course
+> instructores, [Gergely Neu](http://cs.bme.hu/~gergo/) and [Hrvoje
+> Stojic](https://hstojic.re/).
+
 ## Dynamic Programming
 
 [Problem Set 1](ps1_answers.html) is about implementing policy

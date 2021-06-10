@@ -226,7 +226,8 @@ policy_iteration.mdp <- function(
   accuracy=1e-5,
   max_iter=100,
   verbose=0,
-  V=NULL
+  V=NULL,
+  use_conv_crit=TRUE
 ) {
 
   # Setup:
@@ -256,7 +257,11 @@ policy_iteration.mdp <- function(
   while (!finished) {
 
     # 1.) Policy evaluation:
-    V <- power_iteration(mdp, policy, V, accuracy = accuracy)
+    if (use_conv_crit) {
+      V <- power_iteration(mdp, policy, V, accuracy = accuracy)
+    } else {
+      V <- power_iteration(mdp, policy, V, max_iter = 1)
+    }
 
     # 2.) Policy improvement:
     policy_proposed <- policy_improvement(mdp, V)
@@ -269,7 +274,11 @@ policy_iteration.mdp <- function(
     )
     policy <- policy_proposed
     iter <- iter + 1
-    finished <- all(policy_stable) | iter == max_iter
+    if (use_conv_crit) {
+      finished <- all(policy_stable) | iter == max_iter
+    } else {
+      finished <- iter == max_iter
+    }
 
     if (verbose==1) {
       if (finished) {
@@ -312,7 +321,8 @@ policy_iteration <- function(
   accuracy=1e-5,
   max_iter=100,
   verbose=0,
-  V=NULL
+  V=NULL,
+  use_conv_crit=TRUE
 ) {
   UseMethod("policy_iteration", mdp)
 }
@@ -324,7 +334,8 @@ value_iteration.mdp <- function(
   max_iter=100,
   accuracy=1e-5,
   verbose=0,
-  V = NULL
+  V = NULL,
+  use_conv_crit=TRUE
 ) {
 
   # Setup:
@@ -359,7 +370,11 @@ value_iteration.mdp <- function(
     delta <- min(delta, max(abs(V_new-V)))
     V <- V_new
     iter <- iter + 1
-    finished <- (delta < accuracy) | (iter == max_iter)
+    if (use_conv_crit) {
+      finished <- (delta < accuracy) | (iter == max_iter)
+    } else {
+      finished <- iter == max_iter
+    }
 
     if (verbose==1) {
       if (finished) {
@@ -403,7 +418,8 @@ value_iteration <- function(
   max_iter=100,
   accuracy=1e-5,
   verbose=0,
-  V = NULL
+  V = NULL,
+  use_conv_crit=TRUE
 ) {
   UseMethod("value_iteration", mdp)
 }

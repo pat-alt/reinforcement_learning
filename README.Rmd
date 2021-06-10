@@ -11,6 +11,8 @@ knitr::opts_chunk$set(
 )
 ```
 
+> NOTE: Exercises were either proposed or designed by the course instructores, [Gergely Neu](http://cs.bme.hu/~gergo/) and [Hrvoje Stojic](https://hstojic.re/).
+
 ## Dynamic Programming
 
 [Problem Set 1](ps1_answers.html) is about implementing policy evaluation and iteration methods for a simple Markov Decision Process. Implementation in R closely follows @sutton2018reinforcement. The chart below demonstrates how the optimal policy and value function is gradually learned through value iteration.

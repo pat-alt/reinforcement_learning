@@ -4,17 +4,17 @@ subtitle: "Dynamic Programming"
 author: "Patrick Altmeyer"
 date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output: 
+  bookdown::html_document2:
+    code_folding: show
+    number_sections: true
+    toc: true
+    toc_float: true
   bookdown::pdf_document2:
     number_sections: true
     toc: false
     includes:
       in_header: preamble.tex
       before_body: before_body.tex
-  bookdown::html_document2:
-    code_folding: show
-    number_sections: true
-    toc: true
-    toc_float: true
 bibliography: bib.bib
 ---
 
@@ -163,7 +163,7 @@ finished <- all(policy_stable) | iter == max_iter
 
 where as in @sutton2018reinforcement convergence is reached when the policy is unchanged (stable) from one iteration to the next. As mentioned above the full code can be inspected in the corresponding [report](R/mdp.html).
 
-> NOTE: I follow @sutton2018reinforcement as closely as possible. An alternative approach would be to simply run iterate $N$ times and not use accuracy and stability as convergence criteria. In that case one would use only one power iteration to evaluate the policy in PI and iterate exactly $N$ times through the different sweeps in both PI and VI. This approach will also eventually converge to the optimal policy and value function. It may be closer aligned to the one in the slides. The code I put together here can be easily adapted to instead use that approach.
+> NOTE: Here I follow @sutton2018reinforcement as closely as possible. An alternative approach would be to simply run iterate $N$ times and not use accuracy and stability as convergence criteria. In that case one would use only one power iteration to evaluate the policy in PI and iterate exactly $N$ times through the different sweeps in both PI and VI. This approach will also eventually converge to the optimal policy and value function. It may be closer aligned to the one in the slides. The functions used here can be passed an addtional argument `use_conv_crit=FALSE` to use this alternative approach. Results are shown in Section \@ref(omit) but more sparsely commented.
 
 ```{r}
 max_iter <- c(10,20,50,100)
@@ -316,6 +316,72 @@ par(mfrow=c(1,1))
 set.seed(123)
 V_rand <- rnorm(length(mdp$state_space), mean=-12)
 value_iteration(mdp, verbose = 1, accuracy = 1e-3, V=V_rand)
+```
+
+# Ommiting convergence criteria {#omit}
+
+As mentioned above, one may also consider not to use convergence criteria and simply let the iterations run for as many periods as desired. This is possible because we are guaranteed that the methods will eventually converge to optimal policies. Using this approach, there appears to be little difference between the two methodologies in term of how many iterations they need to converge to the optimal policy (Figures \@ref(fig:val-it-simple) and \@ref(fig:pol-it-simple)). In terms of computational run times, value iteration appears to be doing a slightly better job here, possibly due to the fact that it does not involve an evaluation sweep in each round.
+
+```{r, eval=FALSE, include=F}
+# Value Iteration
+png("www/value_iteration_simple.png", width = 600, height = 600)
+par(mfrow=rep(sqrt(length(max_iter)),2))
+value_iter_results <- list()
+for (i in 1:length(max_iter)) {
+  value_iter_results[[i]] <- value_iteration(
+    mdp = mdp,
+    max_iter = max_iter[i],
+    verbose = 1, # to produce plot
+    use_conv_crit = FALSE
+  )
+}
+saveRDS(value_iter_results, file="results/value_iter_simple.rds")
+dev.off()
+```
+
+```{r, eval=FALSE, include=FALSE}
+# Policy Iteration:
+png("www/policy_iteration_simple.png", width = 600, height = 600)
+par(mfrow=rep(sqrt(length(max_iter)),2))
+policy_iter_results <- list()
+for (i in 1:length(max_iter)) {
+  policy_iter_results[[i]] <- policy_iteration(
+    mdp = mdp,
+    max_iter = max_iter[i],
+    verbose = 1, # to produce plot 
+    use_conv_crit = FALSE
+  )
+}
+saveRDS(policy_iter_results, file="results/policy_iter_simple.rds")
+dev.off()
+```
+
+```{r}
+value_iter_results <- readRDS("results/value_iter_simple.rds")
+val_it <- value_iter_results[[4]]
+policy_iter_results <- readRDS("results/policy_iter_simple.rds")
+pol_it <- policy_iter_results[[4]]
+```
+
+```{r val-it-simple, fig.cap="Value Iteration with 10, 20, 50 and 100 iterations not using convergence criteria. The blue line represents the value function corresponding to the final estimate of the optimal value function."}
+knitr::include_graphics("www/value_iteration_simple.png")
+```
+
+```{r pol-it-simple, fig.cap="Policy Iteration with 10, 20, 50 and 100 iterations not using convergence criteria. The blue line represents the value function corresponding to the final estimate of the optimal value function."}
+knitr::include_graphics("www/policy_iteration_simple.png")
+```
+
+```{r, eval=FALSE}
+mb <- microbenchmark(
+  val_it = value_iteration(mdp, use_conv_crit = FALSE, max_iter = 100),
+  pol_it = policy_iteration(mdp, use_conv_crit = FALSE, max_iter = 100)
+)
+saveRDS(mb, file="results/mb_iter_simple.rds")
+```
+
+```{r mb-simple, message=FALSE, fig.cap="Microbenchmark of computational times for Value Iteration and Policy Iteration not using convergence criteria."}
+mb <- readRDS(file="results/mb_iter_simple.rds")
+autoplot(mb)
 ```
 
 # References 
