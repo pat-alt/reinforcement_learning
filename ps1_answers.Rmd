@@ -4,17 +4,17 @@ subtitle: "Dynamic Programming"
 author: "Patrick Altmeyer"
 date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output: 
-  bookdown::html_document2:
-    code_folding: hide
-    number_sections: true
-    toc: true
-    toc_float: true
   bookdown::pdf_document2:
     number_sections: true
     toc: false
     includes:
       in_header: preamble.tex
       before_body: before_body.tex
+  bookdown::html_document2:
+    code_folding: show
+    number_sections: true
+    toc: true
+    toc_float: true
 bibliography: bib.bib
 ---
 
@@ -213,9 +213,9 @@ pol_it <- policy_iter_results[[4]]
 
 Figures \@ref(fig:val-it) and \@ref(fig:pol-it) show the results of running Value and Policy Iteration, respectively, for different numbers of iterations. Figure \@ref(fig:val-it) illustrates nicely how VI gradually learns the optimal policy. It appears that for a desired accuracy of `r accuracy` VI finds a close-to-optimal policy and corresponding value function after 50 iterations. An inspection of the results showed that convergence with respect to the accuracy criterion was reached after 90 iterations (see Table \@ref(tab:num-iter)).
 
-The optimal policy and corresponding value function returned by VI corresponds exactly to the one returned by Policy Iteration (PI). But note that with PI convergence is reached even when the maximum number if iterations is set to 10, so all panels in Figure \@ref(fig:pol-it) look similar. In general, Policy Iteration needs only for 3 to 4 iterations to converge (Table  \@ref(tab:num-iter)). The variation of the numbers largely varies because the initial policy is random and depending on how good a bad the initial guess is, it may take one iteration less or more to converge. 
+The optimal policy and corresponding value function returned by VI corresponds exactly to the one returned by Policy Iteration (PI). But note that with PI convergence is reached even when the maximum number if iterations is set to 10, so all panels in Figure \@ref(fig:pol-it) look similar. In general, Policy Iteration needs only for 3 to 4 iterations to converge (Table  \@ref(tab:num-iter)). The variation of the numbers largely varies because the initial policy is random and depending on how good or bad the initial guess is, it may take one iteration less or more to converge. 
 
-While PI clearly takes less iterations than VI to reach convergence, this comes at a cost: evaluating the policy at each step through power iteration with the desired level of accuracy is computationally costly. Consequently the computational run times of the two different methods are not as much in favour of PI as one might have expected (Figure \@ref(fig:mb)).^[I found that simply using the closed-form solution at led to a massive reduction in run time for PI.]
+While PI clearly takes less iterations than VI to reach convergence, this comes at a cost: evaluating the policy at each step through power iteration with the desired level of accuracy is computationally challenging. Consequently the computational run times of the two different methods are not as much in favour of PI as one might have expected (Figure \@ref(fig:mb)).^[I found that simply using the closed-form solution at led to a massive reduction in run time for PI.]
 
 With respect to the estimated optimal policy Figure \@ref(fig:policy) plots the actual choices for each state and Figure \@ref(fig:comparison) demonstrates the associated improvement in value compared to the lazy and aggressive policies investigated above. The results are very intuitive:
 
