@@ -146,7 +146,7 @@ iter <- iter + 1
 finished <- (delta < accuracy) | (iter == max_iter)
 ```
 
-where `accuracy` defines how accurate we want the estimation to be as in @sutton2018reinforcement. The key steps of **Policy Iteration** are the following
+where `accuracy` defines how accurate we want the estimation to be as in @sutton2018reinforcement. Note that Value Iteration (VI) does not involve a full evaluation sweep at each iteration. Conversely, evaluation forms one of the key steps of **Policy Iteration** which are as follows
 
 ```{r, eval=FALSE, echo=TRUE}
 # 1.) Policy evaluation:
@@ -161,9 +161,7 @@ iter <- iter + 1
 finished <- all(policy_stable) | iter == max_iter
 ```
 
-where as in @sutton2018reinforcement convergence is reached when the policy from one iteration to the next is stable. As mentioned above the full code can be inspected in the corresponding [report](R/mdp.html).
-
-Figures \@ref(fig:val-it) and \@ref(fig:pol-it) show the results of running Value and Policy Iteration, respectively, for different numbers of iterations. Figure \@ref(fig:val-it) illustrates nicely how Value Iteration gradually learns the optimal policy.
+where as in @sutton2018reinforcement convergence is reached when the policy is unchanged (stable) from one iteration to the next. As mentioned above the full code can be inspected in the corresponding [report](R/mdp.html).
 
 ```{r}
 max_iter <- c(10,20,50,100)
@@ -187,10 +185,6 @@ saveRDS(value_iter_results, file="results/value_iter.rds")
 dev.off()
 ```
 
-```{r val-it, fig.cap="Value Iteration with 10, 20, 50 and 100 iterations. The blue line represents the value function corresponding to the final estimate of the optimal value function."}
-knitr::include_graphics("www/value_iteration.png")
-```
-
 ```{r, eval=FALSE, include=FALSE}
 # Policy Iteration:
 png("www/policy_iteration.png", width = 600, height = 600)
@@ -208,10 +202,6 @@ saveRDS(policy_iter_results, file="results/policy_iter.rds")
 dev.off()
 ```
 
-```{r pol-it, fig.cap="Policy Iteration with 10, 20, 50 and 100 iterations. The blue line represents the value function corresponding to the final estimate of the optimal value function."}
-knitr::include_graphics("www/policy_iteration.png")
-```
-
 ```{r}
 value_iter_results <- readRDS("results/value_iter.rds")
 val_it <- value_iter_results[[4]]
@@ -219,11 +209,45 @@ policy_iter_results <- readRDS("results/policy_iter.rds")
 pol_it <- policy_iter_results[[4]]
 ```
 
-```{r rand, fig.cap="Initializing with random values."}
-par(mfrow=c(1,1))
-set.seed(123)
-V_rand <- rnorm(length(mdp$state_space), mean=-12)
-value_iteration(mdp, verbose = 1, accuracy = 1e-3, V=V_rand)
+Figures \@ref(fig:val-it) and \@ref(fig:pol-it) show the results of running Value and Policy Iteration, respectively, for different numbers of iterations. Figure \@ref(fig:val-it) illustrates nicely how VI gradually learns the optimal policy. It appears that for a desired accuracy of `r accuracy` VI finds a close-to-optimal policy and corresponding value function after 50 iterations. An inspection of the results showed that convergence with respect to the accuracy criterion was reached after 90 iterations (see Table \@ref(tab:num-iter)).
+
+The optimal policy and corresponding value function returned by VI corresponds exactly to the one returned by Policy Iteration (PI). But note that with PI convergence is reached even when the maximum number if iterations is set to 10, so all panels in Figure \@ref(fig:pol-it) look similar. In general, Policy Iteration needs only for 3 to 4 iterations to converge (Table  \@ref(tab:num-iter)). The variation of the numbers largely varies because the initial policy is random and depending on how good a bad the initial guess is, it may take one iteration less or more to converge. 
+
+While PI clearly takes less iterations than VI to reach convergence, this comes at a cost: evaluating the policy at each step through power iteration with the desired level of accuracy is computationally costly. Consequently the computational run times of the two different methods are not as much in favour of PI as one might have expected (Figure \@ref(fig:mb)).^[I found that simply using the closed-form solution at led to a massive reduction in run time for PI.]
+
+With respect to the estimated optimal policy Figure \@ref(fig:comparison) demonstrates the improvement compared to the lazy and aggressive policies investigated above.
+
+```{r val-it, fig.cap="Value Iteration with 10, 20, 50 and 100 iterations. The blue line represents the value function corresponding to the final estimate of the optimal value function."}
+knitr::include_graphics("www/value_iteration.png")
+```
+
+```{r pol-it, fig.cap="Policy Iteration with 10, 20, 50 and 100 iterations. The blue line represents the value function corresponding to the final estimate of the optimal value function."}
+knitr::include_graphics("www/policy_iteration.png")
+```
+
+```{r num-iter}
+num_iter <- data.table(
+  value_iter = sapply(value_iter_results, function(i) i$converged_after),
+  policy_iter = sapply(policy_iter_results, function(i) i$converged_after)
+)
+knitr::kable(
+  num_iter, 
+  col.names = c("Value Iteration", "Policy Iteration"),
+  caption = "Number of iterations until convergence or timeout is reached."
+)
+```
+
+```{r, eval=FALSE}
+mb <- microbenchmark(
+  val_it = value_iteration(mdp, accuracy = 1e-3, max_iter = 100),
+  pol_it = policy_iteration(mdp, accuracy = 1e-3, max_iter = 100)
+)
+saveRDS(mb, file="results/mb_iter.rds")
+```
+
+```{r mb, message=FALSE, fig.cap="Microbenchmark of computational times for Value Iteration and Policy Iteration."}
+mb <- readRDS(file="results/mb_iter.rds")
+autoplot(mb)
 ```
 
 ```{r comparison, fig.height=3, fig.width=7, fig.cap="Improvement of estimated optimal policy compared to lazy and aggressive policy."}
@@ -263,29 +287,12 @@ abline(h=0)
 par(mfrow=c(1,1))
 ```
 
-```{r num-iter}
-num_iter <- data.table(
-  value_iter = sapply(value_iter_results, function(i) i$converged_after),
-  policy_iter = sapply(policy_iter_results, function(i) i$converged_after)
-)
-knitr::kable(
-  num_iter, 
-  col.names = c("Value Iteration", "Policy Iteration"),
-  caption = "Number of iterations until convergence or timeout is reached."
-)
-```
 
-```{r, eval=FALSE}
-mb <- microbenchmark(
-  val_it = value_iteration(mdp, accuracy = 1e-3, max_iter = 100),
-  pol_it = policy_iteration(mdp, accuracy = 1e-3, max_iter = 100)
-)
-saveRDS(mb, file="results/mb_iter.rds")
-```
-
-```{r mb, message=FALSE, fig.cap="Microbenchmark of computational times for Value Iteration and Policy Iteration."}
-mb <- readRDS(file="results/mb_iter.rds")
-autoplot(mb)
+```{r rand, fig.cap="Initializing with random values."}
+par(mfrow=c(1,1))
+set.seed(123)
+V_rand <- rnorm(length(mdp$state_space), mean=-12)
+value_iteration(mdp, verbose = 1, accuracy = 1e-3, V=V_rand)
 ```
 
 
