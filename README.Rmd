@@ -13,7 +13,11 @@ knitr::opts_chunk$set(
 
 ## Dynamic Programming
 
+[Problem Set 1](ps1_answers.html) is about implementing policy evaluation and iteration methods for a simple Markov Decision Process. Implementation in R closely follows @sutton2018reinforcement. The chart below demonstrates how the optimal policy and value function is gradually learned through value iteration.
 
+```{r val-it}
+knitr::include_graphics("www/value_iteration.png")
+```
 
 ## Multi-Armed Bandit problems
 
@@ -60,7 +64,7 @@ knitr::include_graphics("www/bayes_opt.gif")
 
 The Figure below shows the loss evolution with different acquisition functions for varying exploration parameters (by row). For UCB and EI the results are intuitive with the former performing better overall: as the exploration rate increases they are more likely to explore and hence at times commit errors. For PI the results are poor across the board. The choices of the eploration rate may be too high for PI. Another explanation may be that due to computational constraints, I have run the multi-started hyperparameter optimization only every five iterations. 
 
-```{r benchmark, fig.cap="Comparison of loss evolution with different acquisition functions for varying exploration parameters (by row)."}
+```{r benchmark, fig.cap="Comparison of loss evolution with different acquisition functions for varying exploration parameters (by row).", echo=FALSE}
 library(data.table)
 library(ggplot2)
 sim_output <- readRDS("results/bayes_opt_sim.rds")
