@@ -1,0 +1,75 @@
+---
+title: "Problem Set 4"
+subtitle: "Approximate Dynamic Programming"
+author: "Patrick Altmeyer"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output: 
+  bookdown::html_document2:
+    code_folding: show
+    number_sections: true
+    toc: true
+    toc_float: true
+  bookdown::pdf_document2:
+    number_sections: true
+    toc: false
+    includes:
+      in_header: preamble.tex
+      before_body: before_body.tex
+bibliography: bib.bib
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = FALSE, fig.align = "center", out.width = 500)
+library(data.table)
+library(ggplot2)
+library(scales)
+library(microbenchmark)
+lapply(
+  list.files("R", pattern = "\\.R"),
+  function(file) {
+    source(file = file.path("R",file))
+  }
+)
+rand_seed <- 123
+theme_set(theme_bw())
+```
+
+There are two fundamental challenges of reinforcement learning (RL):
+
+1. Reward and transition functions are unknown.
+2. The state and action space are large.
+
+Approximate Dynamic Programming deals with both challenges. 
+
+# Approximate Policy Evaluation
+
+```{r}
+# Fine map:
+phi_fine <- function(x, state_space) {
+  phi <- as.numeric(0:(length(state_space)+1)==x)
+  return(phi)
+}
+# Coarse map:
+phi_coarse <- function(x, state_space, width=5) {
+  idx <- 1:((length(state_space))/width)
+  bounds <- data.table(lb=width*(idx-1),ub=width*idx-1)
+  phi <- bounds[,as.numeric(x %between% .(lb,ub))]
+  return(phi)
+}
+# Piece-wise map:
+phi_pwl <- function(x, state_space, width=5) {
+  # Coarse part:
+  idx <- 1:((length(state_space))/width)
+  bounds <- data.table(lb=width*(idx-1),ub=width*idx-1)
+  phi_coarse <- bounds[,as.numeric(x %between% .(lb,ub))]
+  # Other part:
+  phi_other <- phi_coarse * (x - width*(idx - 1)) / width
+  phi <- c(phi_coarse, phi_other)
+  return(phi)
+}
+```
+
+
+
+# Approximate Policy Iteration
