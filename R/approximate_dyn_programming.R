@@ -99,5 +99,130 @@ td.mdp <- function(
       crossprod(theta, phi)
     }
   )
+
   return(V)
+}
+
+td <- function(
+  mdp,
+  policy_fun,
+  state_init=tail(mdp$state_space,1),
+  theta_init=NULL,
+  n_iter=1e5,
+  alpha=function(a,b,t) a/(b+t),
+  a=1e5,
+  b=1e5
+) {
+  UseMethod("td", mdp)
+}
+
+#' Trajectory:
+#+ traj
+sim_trajectory.mdp <- function(
+  mdp,
+  policy_fun,
+  state_init=tail(mdp$state_space,1),
+  n_iter=1e5
+) {
+
+  # Setup:
+  finished <- FALSE
+  iter <- 1
+  state_trajectory <- rep(0,n_iter)
+  state_trajectory[1] <- state_init
+  action_trajectory <- rep(0,n_iter)
+  reward_trajectory <- rep(0,n_iter)
+
+  for (i in 1:n_iter) {
+
+    # Choose action:
+    action_trajectory[i] <- policy_fun(
+      state_trajectory[i],
+      mdp$action_space
+    )
+
+    # Observe reward:
+    reward_trajectory[i] <- reward_pi(
+      mdp,
+      action_trajectory[i],
+      state_trajectory[i]
+    )
+
+    # New state:
+    if (i < n_iter) {
+      state_trajectory[i+1] <- transit_pi(
+        mdp,
+        action_trajectory[i],
+        state_trajectory[i]
+      )
+    }
+
+  }
+
+  trajectory <- data.table(
+    action = action_trajectory,
+    reward = reward_trajectory,
+    state = state_trajectory
+  )
+
+  return(trajectory)
+
+}
+
+sim_trajectory <- function(
+  mdp,
+  policy_fun,
+  state_init=tail(mdp$state_space,1),
+  n_iter=1e5
+) {
+  UseMethod("sim_trajectory", mdp)
+}
+
+#' Least-squares temporal difference learning:
+#+ lstd
+lstd.mdp <- function(
+  mdp,
+  trajectory,
+  sigma=1e-5
+) {
+
+  # Matrix A:
+  n_features <- length(extract_features(mdp, 1))
+  A <- matrix(rep(0,(n_features)^2),n_features)
+  T_ <- nrow(trajectory)
+  for (i in 1:(T_-1)) {
+    phi <- extract_features(mdp, trajectory[i,state])
+    new_phi <- extract_features(mdp, trajectory[i+1,state])
+    A <- A + 1/(T_-1) * (phi %*% t(phi - mdp$discount_factor * new_phi))
+  }
+
+  # Vector b:
+  b <- matrix(rep(0,n_features),n_features)
+  for (i in 1:(T_-1)) {
+    phi <- extract_features(mdp, trajectory[i,state])
+    r_t <- trajectory[i,reward]
+    b <- b + 1/(T_-1) * r_t * phi
+  }
+
+  # Solve:
+  theta <- qr.solve(A + sigma * diag(nrow(A)), b)
+
+  V <- sapply(
+    mdp$state_space,
+    function(state) {
+      phi <- extract_features(mdp, x=state)
+      crossprod(theta, phi)
+    }
+  )
+
+  return(V)
+
+}
+
+lstd <- function(
+  mdp,
+  trajectory,
+  sigma=1e-5
+) {
+  UseMethod("lstd", mdp)
 }
