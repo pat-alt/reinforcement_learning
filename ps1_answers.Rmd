@@ -47,10 +47,11 @@ state_space <- seq(0,N-1,by=1)
 action_space <- c(0.51, 0.6)
 # Reward function:
 reward_fun <- function(state, action, state_space) {
-  reward <-  (-1) * ((state/max(state_space+1))^2 + ifelse(action==0.51,0,0.01))
+  reward <- (-1) * ((state/max(state_space+1))^2 + ifelse(action==0.51,0,0.01))
+  return(reward)
 }
 # Transition function:
-transition_fun <- function(new_state,state,action, p) {
+transition_prob_fun <- function(new_state,state,action, p) {
   
   # Standard rule:
   state_diff <- data.table(new_state = new_state, state = state, q=action)
@@ -75,10 +76,11 @@ mdp <- define_mdp(
   state_space = state_space,
   action_space = action_space,
   reward_fun = reward_fun,
-  transition_fun = transition_fun,
+  transition_prob_fun = transition_prob_fun,
   discount_factor = discount_factor,
   p=p
 )
+saveRDS(mdp, file="results/mdp.rds")
 ```
 
 The following to chunks first define our two policies (lazy and aggressive), then they apply the policies and finally evaluate them using the closed-form solution for the limit of the power iteration. Figure \@ref(fig:lazy-aggr) plots the difference between the value of the lazy and the aggressive policy. Evidently, the lazy policy outperforms the aggressive policy for states around 50-60, but then loses significantly for later states around 70-90 up until the terminal state. This is intuitive: for long queue lengths it should pay off to take high action, but due to the associated cost there a risk of overshooting when taking the high action to early. This is exactly what happens in the range 50-60. It also only pays off to take high action until the terminal state, where the length cannot increase any more anyway, so incurring the cost will never lead to higher reward.

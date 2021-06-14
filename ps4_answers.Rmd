@@ -44,6 +44,14 @@ Approximate Dynamic Programming deals with both challenges.
 
 # Approximate Policy Evaluation
 
+First we will redefine the Markov Decision Process from [Problem Set 1](ps1_answers.html). This time we will not provide the entire state and action space, but instead rely solely on the reward and transition functions to define the MDP.
+
+```{r}
+mdp <- readRDS("results/mdp.rds")
+```
+
+Next we code up the different feature maps:
+
 ```{r}
 # Fine map:
 phi_fine <- function(x, state_space) {
@@ -70,6 +78,45 @@ phi_pwl <- function(x, state_space, width=5) {
 }
 ```
 
+Finally we augment the `mdp` instance by the feature map function and the corresponding additional `width` argument.
 
+```{r}
+mdp$width <- 5
+mdp$feature_map_fun <- phi_pwl
+```
+
+While in [Problem Set 1](ps1_answers.html) we supplied a function to the `mdp` instance that would be used to compute a matrix describing the probabilities of transitioning from one state to another, here we will need to supply a function that actually generates a random transition based on the transition function.
+
+```{r}
+transition_fun <- function(state, action, state_space, p) {
+  x <- state + rbinom(1,1,p) - rbinom(1,1,action)
+  new_state <- min(max(state_space), max(x,0))
+  return(new_state)
+}
+mdp$transition_fun <- transition_fun
+```
+
+
+```{r, echo=TRUE}
+# Policies:
+lazy <- function(state, action_space) {
+  action <- rep(action_space[1], length(state))
+  return(action)
+}
+
+aggressive <- function(state, action_space) {
+  action <- ifelse(state<50, action_space[1], action_space[2])
+  return(action)
+}
+```
+
+```{r, echo=TRUE}
+# Lazy:
+policy_lazy <- lazy(state = mdp$state_space, action_space = mdp$action_space)
+# V_pi_lazy <- evaluate_policy(mdp, policy = policy_lazy)
+# Aggressive:
+policy_aggr <- aggressive(state = mdp$state_space, action_space = mdp$action_space)
+# V_pi_aggr <- evaluate_policy(mdp, policy = policy_aggr)
+```
 
 # Approximate Policy Iteration

@@ -10,21 +10,23 @@ library(data.table)
 #' Markov decision process:
 #+ mdp
 define_mdp <- function(
-  state_space,
-  action_space,
   reward_fun,
-  transition_fun,
   discount_factor,
+  transition_fun=NULL,
+  transition_prob_fun=NULL,
+  state_space=NULL,
+  action_space=NULL,
   ...
 ) {
 
   # Compile:
   mdp <- list(
+    reward_fun = reward_fun,
+    discount_factor = discount_factor,
+    transition_fun = transition_fun,
+    transition_prob_fun = transition_prob_fun,
     state_space = state_space,
     action_space = action_space,
-    reward_fun = reward_fun,
-    transition_fun = transition_fun,
-    discount_factor = discount_factor,
     ...
   )
 
@@ -37,18 +39,20 @@ define_mdp <- function(
 
 #' Reward function:
 #+ reward-fun
-reward_pi.mdp <- function(mdp, policy) {
+reward_pi.mdp <- function(mdp, policy=NULL, state=NULL) {
 
-  # Setup: ----
-  state <- mdp$state_space
-  action_space <- mdp$action_space
+  # Setup:
+  if (is.null(state)) {
+    state <- mdp$state_space
+    action <- policy
+  }
 
-  # Reward vector: ----
+  # Reward vector:
   reward_fun_arg_names <- formalArgs(mdp$reward_fun) # all arguments
   # Default arguments:
   reward_fun_args_default <- list(
     state = state,
-    action = policy
+    action = action
   )
   # Additional arguments:
   add_arg_names <- reward_fun_arg_names[
@@ -68,41 +72,88 @@ reward_pi.mdp <- function(mdp, policy) {
   reward_fun_args <- c(reward_fun_args_default, reward_fun_args_additional)
   r_pi <- do.call(mdp$reward_fun, args = reward_fun_args)
 
-  # Return: ----
+  # Return:
   return(r_pi)
 
 }
 
-reward_pi <- function(mdp, policy) {
+reward_pi <- function(mdp, policy=NULL, state=NULL) {
   UseMethod("reward_pi", mdp)
 }
 
 #' Transition function:
 #+ trans-fun
-transition_pi.mdp <- function(mdp, policy) {
+transit_pi.mdp <- function(mdp, policy=NULL, state=NULL) {
 
-  # Setup: ----
+  # Setup:
+  if (is.null(state)) {
+    state <- mdp$state_space
+    action <- policy
+  }
+
+  # transition vector:
+  transition_fun_arg_names <- formalArgs(mdp$transition_fun) # all arguments
+  # Default arguments:
+  transition_fun_args_default <- list(
+    state = state,
+    action = action
+  )
+  # Additional arguments:
+  add_arg_names <- transition_fun_arg_names[
+    !transition_fun_arg_names  %in% names(transition_fun_args_default)
+  ]
+  tryCatch(
+    transition_fun_args_additional <- lapply(add_arg_names, function(i) mdp[[i]]),
+    error = function(e) {
+      stop(
+        "Any additional user-defined arguments used by transition function need to be
+        passed at instatiation of MDP."
+      )
+    }
+  )
+  names(transition_fun_args_additional) <- add_arg_names
+  # Bring together:
+  transition_fun_args <- c(
+    transition_fun_args_default,
+    transition_fun_args_additional
+  )
+  new_state <- do.call(mdp$transition_fun, args = transition_fun_args)
+
+  # Return:
+  return(new_state)
+
+}
+
+transit_pi <- function(mdp, policy=NULL, state=NULL) {
+  UseMethod("transit_pi", mdp)
+}
+
+#' Transition probability function:
+#+ trans-prob-fun
+transition_prob_pi.mdp <- function(mdp, policy) {
+
+  # Setup:
   list2env(mdp, envir = environment())
   n_states <- length(state_space)
   state <- mdp$state_space
 
-  # Transition matrix: ----
+  # Transition matrix:
   state_action <- data.table(state = state, action = policy)
   grid <- state_action[,.(CJ(new_state=state, state),action)]
   grid[,prob:={
-    transition_fun_args <- lapply(formalArgs(transition_fun), function(i) get(i))
-    names(transition_fun_args) <- formalArgs(transition_fun)
-    do.call(transition_fun, args = transition_fun_args)
+    transition_prob_fun_args <- lapply(formalArgs(transition_prob_fun), function(i) get(i))
+    names(transition_prob_fun_args) <- formalArgs(transition_prob_fun)
+    do.call(transition_prob_fun, args = transition_prob_fun_args)
   }]
   P_pi <- matrix(grid$prob, nrow=n_states)
 
-  # Return: ----
+  # Return:
   return(P_pi)
 
 }
 
-transition_pi <- function(mdp, policy) {
-  UseMethod("transition_pi", mdp)
+transition_prob_pi <- function(mdp, policy) {
+  UseMethod("transition_prob_pi", mdp)
 }
 
 #' Evaluate policy:
@@ -113,7 +164,7 @@ evaluate_policy.mdp <- function(mdp, policy) {
   r_pi <- reward_pi(mdp, policy)
 
   # Transition matrix:
-  P_pi <- transition_pi(mdp, policy)
+  P_pi <- transition_prob_pi(mdp, policy)
 
   # Value function:
   n_states <- length(mdp$state_space)
@@ -142,7 +193,7 @@ power_iteration.mdp <- function(mdp, policy, V, accuracy=1e-0, max_iter=1000) {
     r_pi <- reward_pi(mdp, policy)
 
     # Transition matrix:
-    P_pi <- transition_pi(mdp, policy)
+    P_pi <- transition_prob_pi(mdp, policy)
 
     # Value function:
     V_new <- r_pi + P_pi %*% (mdp$discount_factor * V)
@@ -180,7 +231,7 @@ policy_improvement.mdp <- function(
       # Reward vector:
       r_pi <- as.matrix(reward_pi(mdp, a))
       # Transition matrix:
-      P_pi <- transition_pi(mdp, a)
+      P_pi <- transition_prob_pi(mdp, a)
       r_pi + P_pi %*% (mdp$discount_factor * V)
     }
   )
