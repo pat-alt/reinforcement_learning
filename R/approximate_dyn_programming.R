@@ -49,7 +49,7 @@ extract_features <- function(mdp, x) {
 #+ temp-diff
 td.mdp <- function(
   mdp,
-  policy_fun,
+  policy,
   state_init=tail(mdp$state_space,1),
   theta_init=NULL,
   n_iter=1e5,
@@ -71,7 +71,7 @@ td.mdp <- function(
   while(!finished) {
 
     # Choose action:
-    action <- policy_fun(state, mdp$action_space)
+    action <- policy[which(mdp$state_space == state)]
 
     # Observe reward:
     r_pi <- reward_pi(mdp, action, state)
@@ -105,7 +105,7 @@ td.mdp <- function(
 
 td <- function(
   mdp,
-  policy_fun,
+  policy,
   state_init=tail(mdp$state_space,1),
   theta_init=NULL,
   n_iter=1e5,
@@ -120,7 +120,7 @@ td <- function(
 #+ traj
 sim_trajectory.mdp <- function(
   mdp,
-  policy_fun,
+  policy,
   state_init=tail(mdp$state_space,1),
   n_iter=1e5
 ) {
@@ -136,10 +136,7 @@ sim_trajectory.mdp <- function(
   for (i in 1:n_iter) {
 
     # Choose action:
-    action_trajectory[i] <- policy_fun(
-      state_trajectory[i],
-      mdp$action_space
-    )
+    action_trajectory[i] <- policy[which(mdp$state_space == state_trajectory[i])]
 
     # Observe reward:
     reward_trajectory[i] <- reward_pi(
@@ -171,7 +168,7 @@ sim_trajectory.mdp <- function(
 
 sim_trajectory <- function(
   mdp,
-  policy_fun,
+  policy,
   state_init=tail(mdp$state_space,1),
   n_iter=1e5
 ) {
@@ -225,4 +222,57 @@ lstd <- function(
   sigma=1e-5
 ) {
   UseMethod("lstd", mdp)
+}
+
+#' Approximate policy iteration:
+#+ appr-pol-it
+appr_policy_iteration.mdp <- function(
+  mdp,
+  policy=NULL,
+  n_iter=100,
+  n_trans=1e4,
+  verbose=0
+) {
+
+  # Setup:
+  if (is.null(policy)) {
+    policy <- sample(mdp$action_space, length(mdp$state_space), replace = TRUE)
+  }
+  iter <- 1
+  finished <- FALSE
+
+  while (!finished) {
+
+    # 1.) Policy evaluation:
+    trajectory <- sim_trajectory(mdp, policy, n_iter = n_trans)
+    V <- lstd(mdp, trajectory)
+
+    # 2.) Policy improvement:
+    policy <- policy_improvement(mdp, V)
+
+    # 3.) Update:
+    iter <- iter + 1
+    finished <- iter == n_iter
+
+  }
+
+  optimal_policy <- list(
+    policy = policy,
+    value = evaluate_policy(mdp, policy),
+    mdp = mdp,
+    n_iter = n_iter
+  )
+
+  return(optimal_policy)
+
+}
+
+appr_policy_iteration <- function(
+  mdp,
+  policy=NULL,
+  n_iter=100,
+  n_trans=1e4,
+  verbose=0
+) {
+  UseMethod("aggr_policy_iteration", mdp)
 }

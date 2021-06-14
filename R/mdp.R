@@ -247,7 +247,7 @@ policy_improvement.mdp <- function(
       if(length(best_action)>1) {
         best_action <- sample(best_action, 1)
       }
-      return(action_space[best_action])
+      return(mdp$action_space[best_action])
     }
   )
 
