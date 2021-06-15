@@ -44,8 +44,8 @@ reward_pi.mdp <- function(mdp, policy=NULL, state=NULL) {
   # Setup:
   if (is.null(state)) {
     state <- mdp$state_space
-    action <- policy
   }
+  action <- policy
 
   # Reward vector:
   reward_fun_arg_names <- formalArgs(mdp$reward_fun) # all arguments
@@ -88,8 +88,8 @@ transit_pi.mdp <- function(mdp, policy=NULL, state=NULL) {
   # Setup:
   if (is.null(state)) {
     state <- mdp$state_space
-    action <- policy
   }
+  action <- policy
 
   # transition vector:
   transition_fun_arg_names <- formalArgs(mdp$transition_fun) # all arguments

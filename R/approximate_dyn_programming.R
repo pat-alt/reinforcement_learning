@@ -45,77 +45,6 @@ extract_features <- function(mdp, x) {
   UseMethod("extract_features", mdp)
 }
 
-#' Temporal Difference Learning:
-#+ temp-diff
-td.mdp <- function(
-  mdp,
-  policy,
-  state_init=tail(mdp$state_space,1),
-  theta_init=NULL,
-  n_iter=1e5,
-  alpha=function(a,b,t) a/(b+t),
-  a=1e5,
-  b=1e5
-) {
-
-  # Setup:
-  finished <- FALSE
-  iter <- 1
-  state <- state_init
-  if (is.null(theta_init)) {
-    n_features <- length(extract_features(mdp, mdp$state_space[1]))
-    theta <- rep(0, n_features)
-  }
-  phi <- extract_features(mdp, x=state)
-
-  while(!finished) {
-
-    # Choose action:
-    action <- policy[which(mdp$state_space == state)]
-
-    # Observe reward:
-    r_pi <- reward_pi(mdp, action, state)
-
-    # New state:
-    new_state <- transit_pi(mdp, action, state)
-
-    # Update:
-    new_phi <- extract_features(mdp, x=new_state)
-    delta <- r_pi +
-      mdp$discount_factor * crossprod(theta, new_phi) -
-      crossprod(theta, phi)
-    theta <- theta + alpha(a,b,iter) * as.numeric(delta) * phi
-    phi <- new_phi
-    state <- new_state
-    iter <- iter + 1
-    finished <- iter == n_iter
-
-  }
-
-  V <- sapply(
-    mdp$state_space,
-    function(state) {
-      phi <- extract_features(mdp, x=state)
-      crossprod(theta, phi)
-    }
-  )
-
-  return(V)
-}
-
-td <- function(
-  mdp,
-  policy,
-  state_init=tail(mdp$state_space,1),
-  theta_init=NULL,
-  n_iter=1e5,
-  alpha=function(a,b,t) a/(b+t),
-  a=1e5,
-  b=1e5
-) {
-  UseMethod("td", mdp)
-}
-
 #' Trajectory:
 #+ traj
 sim_trajectory.mdp <- function(
@@ -175,6 +104,66 @@ sim_trajectory <- function(
   UseMethod("sim_trajectory", mdp)
 }
 
+#' Temporal Difference Learning:
+#+ temp-diff
+td.mdp <- function(
+  mdp,
+  trajectory,
+  theta_init=NULL,
+  alpha=function(a,b,t) a/(b+t),
+  a=1e5,
+  b=1e5
+) {
+
+  # Setup:
+  finished <- FALSE
+  iter <- 1
+  if (is.null(theta_init)) {
+    n_features <- length(extract_features(mdp, mdp$state_space[1]))
+    theta <- rep(0, n_features)
+  }
+  T_ <- nrow(trajectory)
+
+  for (t in 1:(T_-1)) {
+
+    phi <- extract_features(mdp, trajectory[t,state])
+    new_phi <- extract_features(mdp, trajectory[t+1,state])
+    r <- trajectory[t,reward]
+
+    delta <- r +
+      mdp$discount_factor * crossprod(theta, new_phi) -
+      crossprod(theta, phi)
+    theta <- theta + alpha(a,b,t) * as.numeric(delta) * phi
+
+  }
+
+  V <- sapply(
+    mdp$state_space,
+    function(state) {
+      phi <- extract_features(mdp, x=state)
+      crossprod(theta, phi)
+    }
+  )
+
+  output <- list(
+    V = V,
+    theta = theta
+  )
+
+  return(output)
+}
+
+td <- function(
+  mdp,
+  trajectory,
+  theta_init=NULL,
+  alpha=function(a,b,t) a/(b+t),
+  a=1e5,
+  b=1e5
+) {
+  UseMethod("td", mdp)
+}
+
 #' Least-squares temporal difference learning:
 #+ lstd
 lstd.mdp <- function(
@@ -187,17 +176,17 @@ lstd.mdp <- function(
   n_features <- length(extract_features(mdp, 1))
   A <- matrix(rep(0,(n_features)^2),n_features)
   T_ <- nrow(trajectory)
-  for (i in 1:(T_-1)) {
-    phi <- extract_features(mdp, trajectory[i,state])
-    new_phi <- extract_features(mdp, trajectory[i+1,state])
+  for (t in 1:(T_-1)) {
+    phi <- extract_features(mdp, trajectory[t,state])
+    new_phi <- extract_features(mdp, trajectory[t+1,state])
     A <- A + 1/(T_-1) * (phi %*% t(phi - mdp$discount_factor * new_phi))
   }
 
   # Vector b:
   b <- matrix(rep(0,n_features),n_features)
-  for (i in 1:(T_-1)) {
-    phi <- extract_features(mdp, trajectory[i,state])
-    r_t <- trajectory[i,reward]
+  for (t in 1:(T_-1)) {
+    phi <- extract_features(mdp, trajectory[t,state])
+    r_t <- trajectory[t,reward]
     b <- b + 1/(T_-1) * r_t * phi
   }
 
@@ -212,7 +201,12 @@ lstd.mdp <- function(
     }
   )
 
-  return(V)
+  output <- list(
+    V = V,
+    theta = theta
+  )
+
+  return(output)
 
 }
 
@@ -245,14 +239,49 @@ appr_policy_iteration.mdp <- function(
 
     # 1.) Policy evaluation:
     trajectory <- sim_trajectory(mdp, policy, n_iter = n_trans)
-    V <- lstd(mdp, trajectory)
+    out <- lstd(mdp, trajectory)
+    V <- out$V
+    theta <- out$theta
+
+    if (verbose == 1 & iter==1) {
+      plot(
+        x=mdp$state_space,
+        y=V,
+        t="l",
+        xlab="State",
+        ylab="Improvement",
+        ylim=c(-10,0),
+        main = sprintf("Iterations: %i", n_iter)
+      )
+    }
 
     # 2.) Policy improvement:
     policy <- policy_improvement(mdp, V)
+    print(policy)
 
     # 3.) Update:
     iter <- iter + 1
     finished <- iter == n_iter
+
+    if (verbose==1 & iter>1) {
+      if (finished) {
+        points(
+          x=mdp$state_space,
+          y=V,
+          t="l",
+          col="blue",
+          lwd=2
+        )
+      } else {
+        points(
+          x=mdp$state_space,
+          y=V,
+          t="l",
+          col=alpha("black",0.5),
+          lty="dotted"
+        )
+      }
+    }
 
   }
 
@@ -260,7 +289,8 @@ appr_policy_iteration.mdp <- function(
     policy = policy,
     value = evaluate_policy(mdp, policy),
     mdp = mdp,
-    n_iter = n_iter
+    n_iter = n_iter,
+    theta = theta
   )
 
   return(optimal_policy)
@@ -274,5 +304,5 @@ appr_policy_iteration <- function(
   n_trans=1e4,
   verbose=0
 ) {
-  UseMethod("aggr_policy_iteration", mdp)
+  UseMethod("appr_policy_iteration", mdp)
 }

@@ -55,7 +55,7 @@ Next we code up the different feature maps:
 ```{r}
 # Fine map:
 phi_fine <- function(x, state_space) {
-  phi <- as.numeric(0:(length(state_space)+1)==x)
+  phi <- as.numeric(0:length(state_space)==x)
   return(phi)
 }
 # Coarse map:
@@ -76,13 +76,18 @@ phi_pwl <- function(x, state_space, width=5) {
   phi <- c(phi_coarse, phi_other)
   return(phi)
 }
+# List:
+feature_maps <- list(
+  fine = phi_fine,
+  coarse = phi_coarse,
+  pwl = phi_pwl
+)
 ```
 
-Finally we augment the `mdp` instance by the feature map function and the corresponding additional `width` argument.
+Finally we add to the `mdp` instance the `width` argument, which will be used by the feature maps below.
 
 ```{r}
 mdp$width <- 5
-mdp$feature_map_fun <- phi_pwl
 ```
 
 While in [Problem Set 1](ps1_answers.html) we supplied a function to the `mdp` instance that would be used to compute a matrix describing the probabilities of transitioning from one state to another, here we will need to supply a function that actually generates a random transition based on the transition function.
@@ -96,6 +101,7 @@ transition_fun <- function(state, action, state_space, p) {
 mdp$transition_fun <- transition_fun
 ```
 
+As before we introduce the two deterministic policies:
 
 ```{r, echo=TRUE}
 # Policies:
@@ -113,10 +119,86 @@ aggressive <- function(state, action_space) {
 ```{r, echo=TRUE}
 # Lazy:
 policy_lazy <- lazy(state = mdp$state_space, action_space = mdp$action_space)
-# V_pi_lazy <- evaluate_policy(mdp, policy = policy_lazy)
 # Aggressive:
 policy_aggr <- aggressive(state = mdp$state_space, action_space = mdp$action_space)
-# V_pi_aggr <- evaluate_policy(mdp, policy = policy_aggr)
+policies <- list(
+  lazy = policy_lazy,
+  aggr = policy_aggr
+)
+```
+
+
+```{r, eval=FALSE}
+# Set up the grid:
+n_iter <- c(1e3,1e4,1e5)
+grid <- CJ(n_iter=n_iter, feature_map=names(feature_maps), policy=names(policies))
+set.seed(42)
+trajectories <- list(
+  lazy = sim_trajectory(mdp, policies[["lazy"]], n_iter = max(n_iter)),
+  aggr = sim_trajectory(mdp, policies[["aggr"]], n_iter = max(n_iter))
+)
+sim_output <- rbindlist(
+  lapply(
+    1:nrow(grid),
+    function(i) {
+      list2env(c(grid[i,]), envir = environment())
+      message(
+        sprintf(
+          "Running: feature map: %s, policy: %s, n_iter: %i", 
+          feature_map, policy, n_iter
+        )
+      )
+      mdp$feature_map_fun <- feature_maps[[feature_map]]
+      traj_temp <- trajectories[[policy]][1:n_iter,]
+      out_td <- td(mdp, traj_temp)
+      V_td <- out_td$V
+      out_lstd <- lstd(mdp, traj_temp)
+      V_lstd <- out_lstd$V
+      output <- data.table(
+        td = V_td,
+        lstd = V_lstd,
+        n_iter = n_iter,
+        policy = policy,
+        feature_map = feature_map
+      )
+      return(output)
+    }
+  )
+)
+sim_output <- melt(sim_output, measure.vars = c("td", "lstd"))
+sim_output[,state:=mdp$state_space,by=.(policy, feature_map, variable, n_iter)]
+saveRDS(sim_output, file="results/ps4_sim.rds")
+```
+
+```{r}
+sim_output <- readRDS("results/ps4_sim.rds")
+```
+
+```{r}
+p <- ggplot(data=sim_output[policy=="aggr"], aes(x=state, y=value, linetype=variable)) +
+  geom_line() +
+  facet_grid(
+    rows=vars(feature_map),
+    cols=vars(n_iter)
+  )
+p
+```
+
+```{r}
+p <- ggplot(data=sim_output[policy=="lazy"], aes(x=state, y=value, linetype=variable)) +
+  geom_line() +
+  facet_grid(
+    rows=vars(feature_map),
+    cols=vars(n_iter)
+  )
+p
 ```
 
 # Approximate Policy Iteration
+
+```{r}
+mdp$feature_map_fun <- phi_fine
+optimal_policy <- appr_policy_iteration(mdp,n_iter = 50, n_trans = 1e4, verbose = 1)
+saveRDS(optimal_policy, file="results/optimal_policy_approx.rds")
+```
+
