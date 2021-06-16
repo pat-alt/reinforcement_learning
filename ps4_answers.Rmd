@@ -127,9 +127,9 @@ policies <- list(
 )
 ```
 
-
 ```{r, eval=FALSE}
 # Set up the grid:
+sigma <- 1e-5
 n_iter <- c(1e3,1e4,1e5)
 grid <- CJ(n_iter=n_iter, feature_map=names(feature_maps), policy=names(policies))
 set.seed(42)
@@ -152,7 +152,42 @@ sim_output <- rbindlist(
       traj_temp <- trajectories[[policy]][1:n_iter,]
       out_td <- td(mdp, traj_temp)
       V_td <- out_td$V
-      out_lstd <- lstd(mdp, traj_temp)
+      out_lstd <- lstd(mdp, traj_temp, sigma=sigma)
+      V_lstd <- out_lstd$V
+      output <- data.table(
+        td = V_td,
+        lstd = V_lstd,
+        n_iter = n_iter,
+        policy = policy,
+        feature_map = feature_map
+      )
+      return(output)
+    }
+  )
+)
+sim_output <- melt(sim_output, measure.vars = c("td", "lstd"))
+sim_output[,state:=mdp$state_space,by=.(policy, feature_map, variable, n_iter)]
+saveRDS(sim_output, file="results/ps4_sim_reg.rds")
+```
+
+```{r, eval=FALSE}
+regularization <- 1e-30 
+sim_output <- rbindlist(
+  lapply(
+    1:nrow(grid),
+    function(i) {
+      list2env(c(grid[i,]), envir = environment())
+      message(
+        sprintf(
+          "Running: feature map: %s, policy: %s, n_iter: %i", 
+          feature_map, policy, n_iter
+        )
+      )
+      mdp$feature_map_fun <- feature_maps[[feature_map]]
+      traj_temp <- trajectories[[policy]][1:n_iter,]
+      out_td <- td(mdp, traj_temp)
+      V_td <- out_td$V
+      out_lstd <- lstd(mdp, traj_temp, sigma = regularization)
       V_lstd <- out_lstd$V
       output <- data.table(
         td = V_td,
@@ -170,9 +205,13 @@ sim_output[,state:=mdp$state_space,by=.(policy, feature_map, variable, n_iter)]
 saveRDS(sim_output, file="results/ps4_sim.rds")
 ```
 
+
 ```{r}
+sim_output_reg <- readRDS("results/ps4_sim_reg.rds")
 sim_output <- readRDS("results/ps4_sim.rds")
 ```
+
+Found that higher levels of regularization led to poorer estimates.
 
 ```{r}
 p <- ggplot(data=sim_output[policy=="aggr"], aes(x=state, y=value, linetype=variable)) +
@@ -197,8 +236,26 @@ p
 # Approximate Policy Iteration
 
 ```{r}
-mdp$feature_map_fun <- phi_fine
-optimal_policy <- appr_policy_iteration(mdp,n_iter = 50, n_trans = 1e4, verbose = 1)
-saveRDS(optimal_policy, file="results/optimal_policy_approx.rds")
+n_iter <- c(10,100)
+png("www/optimal_polciy_approx.png", width = 900, height = 500)
+par(mfrow=c(1,length(n_iter)))
+mdp$feature_map_fun <- phi_pwl
+policy_iter_results <- list()
+for (i in 1:length(n_iter)) {
+  policy_iter_results[[i]] <- appr_policy_iteration(
+    mdp,
+    n_iter = n_iter[i], 
+    n_trans = 1e4, 
+    verbose = 1,
+    sigma = 1e-30
+  )
+}
+saveRDS(policy_iter_results, file="results/optimal_policy_approx.rds")
+dev.off()
 ```
+
+```{r}
+optimal_policy <- readRDS(file="results/optimal_policy_approx.rds")
+```
+
 

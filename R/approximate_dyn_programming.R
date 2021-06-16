@@ -169,7 +169,7 @@ td <- function(
 lstd.mdp <- function(
   mdp,
   trajectory,
-  sigma=1e-5
+  sigma=1e-20
 ) {
 
   # Matrix A:
@@ -213,7 +213,7 @@ lstd.mdp <- function(
 lstd <- function(
   mdp,
   trajectory,
-  sigma=1e-5
+  sigma=1e-20
 ) {
   UseMethod("lstd", mdp)
 }
@@ -225,7 +225,8 @@ appr_policy_iteration.mdp <- function(
   policy=NULL,
   n_iter=100,
   n_trans=1e4,
-  verbose=0
+  verbose=0,
+  sigma=1e-20
 ) {
 
   # Setup:
@@ -237,9 +238,14 @@ appr_policy_iteration.mdp <- function(
 
   while (!finished) {
 
+    if (verbose==1) {
+      message(sprintf("Iteration: %i", iter))
+      print(policy)
+    }
+
     # 1.) Policy evaluation:
     trajectory <- sim_trajectory(mdp, policy, n_iter = n_trans)
-    out <- lstd(mdp, trajectory)
+    out <- lstd(mdp, trajectory, sigma=sigma)
     V <- out$V
     theta <- out$theta
 
@@ -257,7 +263,6 @@ appr_policy_iteration.mdp <- function(
 
     # 2.) Policy improvement:
     policy <- policy_improvement(mdp, V)
-    print(policy)
 
     # 3.) Update:
     iter <- iter + 1
@@ -302,7 +307,8 @@ appr_policy_iteration <- function(
   policy=NULL,
   n_iter=100,
   n_trans=1e4,
-  verbose=0
+  verbose=0,
+  sigma=1e-20
 ) {
   UseMethod("appr_policy_iteration", mdp)
 }
