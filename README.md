@@ -100,6 +100,28 @@ varying exploration parameters (by row).
 
 </div>
 
+## Approximate Dynamic Programming
+
+There are two fundamental challenges of reinforcement learning (RL):
+
+1.  Reward and transition functions are unknown.
+2.  The state and action space are large.
+
+Approximate Dynamic Programming deals with both challenges.
+
+The chart below shows the approximate evaluations of the two
+deterministic policies for different numbers of sample transitions
+(across columns) and different feature maps (across rows). Broadly
+speaking the estimates tend to be less noisy as the number of sample
+transitions increases.
+
+<img src="README_files/figure-gfm/unnamed-chunk-6-1.png" width="500" style="display: block; margin: auto;" />
+
+Approximate policy iteration is noisy for high states. Nonetheless the
+proposed policies are close two optimal:
+
+<img src="README_files/figure-gfm/unnamed-chunk-7-1.png" width="500" style="display: block; margin: auto;" />
+
 ## References
 
 <div id="refs" class="references csl-bib-body hanging-indent">

@@ -9,6 +9,9 @@ knitr::opts_chunk$set(
   out.width = 500,
   fig.align = "center"
 )
+library(data.table)
+library(ggplot2)
+theme_set(theme_bw())
 ```
 
 > NOTE: Exercises were either proposed or designed by the course instructores, [Gergely Neu](http://cs.bme.hu/~gergo/) and [Hrvoje Stojic](https://hstojic.re/).
@@ -67,8 +70,6 @@ knitr::include_graphics("www/bayes_opt.gif")
 The Figure below shows the loss evolution with different acquisition functions for varying exploration parameters (by row). For UCB and EI the results are intuitive with the former performing better overall: as the exploration rate increases they are more likely to explore and hence at times commit errors. For PI the results are poor across the board. The choices of the eploration rate may be too high for PI. Another explanation may be that due to computational constraints, I have run the multi-started hyperparameter optimization only every five iterations. 
 
 ```{r benchmark, fig.cap="Comparison of loss evolution with different acquisition functions for varying exploration parameters (by row).", echo=FALSE}
-library(data.table)
-library(ggplot2)
 sim_output <- readRDS("results/bayes_opt_sim.rds")
 sim_output <- rbindlist(
   lapply(
@@ -96,6 +97,49 @@ p <- ggplot(data=sim_output, aes(x=iter, y=loss, colour=acqui)) +
   )
 p
 ```
+
+## Approximate Dynamic Programming
+
+There are two fundamental challenges of reinforcement learning (RL):
+
+1. Reward and transition functions are unknown.
+2. The state and action space are large.
+
+Approximate Dynamic Programming deals with both challenges.
+
+The chart below shows the approximate evaluations of the two deterministic policies for different numbers of sample transitions (across columns) and different feature maps (across rows). Broadly speaking the estimates tend to be less noisy as the number of sample transitions increases.
+
+```{r, echo=FALSE}
+sim_output <- readRDS("results/ps4_sim.rds")
+p <- ggplot(data=sim_output[policy=="lazy"], aes(x=state, y=value, linetype=variable)) +
+  geom_line() +
+  facet_grid(
+    rows=vars(feature_map),
+    cols=vars(n_iter)
+  )
+p + 
+  labs(title="Lazy policy, barely regularized")
+```
+
+Approximate policy iteration is noisy for high states. Nonetheless the proposed policies are close two optimal:
+
+```{r, echo=FALSE}
+optimal_policy <- readRDS(file="results/optimal_policy_approx.rds")
+value_iter_results <- readRDS("results/value_iter.rds")
+val_it <- value_iter_results[[4]]
+N <- length(val_it$policy)
+proposed_policies <- rbind(
+  data.table(state=1:N, action=val_it$policy,type="optimal"),
+  data.table(state=1:N, action=optimal_policy[[1]]$policy,type="few_iter"),
+  data.table(state=1:N, action=optimal_policy[[2]]$policy,type="many_iter")
+)
+ggplot(data=proposed_policies, aes(x=state, y=action)) +
+  geom_point(cex=.25, colour="blue") +
+  facet_grid(
+    rows=vars(type)
+  )
+```
+
 
 ## References
 
