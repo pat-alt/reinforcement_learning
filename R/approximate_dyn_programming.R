@@ -11,7 +11,7 @@ library(data.table)
 #+ extract-features
 extract_features.mdp <- function(mdp, x) {
 
-  # Feature vector: ----
+  # Feature vector:
   feature_map_fun_arg_names <- formalArgs(mdp$feature_map_fun) # all arguments
   # Default arguments:
   feature_map_fun_args_default <- list(
@@ -36,7 +36,7 @@ extract_features.mdp <- function(mdp, x) {
   feature_map_fun_args <- c(feature_map_fun_args_default, feature_map_fun_args_additional)
   phi <- do.call(mdp$feature_map_fun, args = feature_map_fun_args)
 
-  # Return: ----
+  # Return:
   return(phi)
 
 }
@@ -266,7 +266,7 @@ appr_policy_iteration.mdp <- function(
 
     # 3.) Update:
     iter <- iter + 1
-    finished <- iter == n_iter
+    finished <- iter >= n_iter
 
     if (verbose==1 & iter>1) {
       if (finished) {
