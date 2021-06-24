@@ -1,0 +1,66 @@
+---
+title: "Piece-wise stationary multi-armed bandits"
+subtitle: "Final project"
+author: 
+- "Marc Agustí (marc.agusti@barcelonagse.eu)"
+- "Patrick Altmeyer (patrick.altmeyer@barcelonagse.eu)"
+- "Ignacio Vidal-Quadras Costa (ignacio.vidalquadrascosta@barcelonagse.eu)"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output: 
+  bookdown::pdf_document2:
+    number_sections: true
+    toc: false
+    includes:
+      in_header: preamble.tex
+      before_body: before_body.tex
+  bookdown::html_document2:
+    code_folding: show
+    number_sections: true
+    toc: true
+    toc_float: true
+fontsize: 12pt
+bibliography: bib.bib
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(
+  echo = FALSE, 
+  fig.align = "center"
+)
+library(reticulate)
+```
+
+```{python}
+from python.mab import *
+```
+
+@raj2017taming - **Taming Non-stationary Bandits: A Bayesian Approach**
+@besbes2014stochastic - **Stochastic multi-armed-bandit problem with non-stationary rewards**
+@gupta2011thompson - **Thompson Sampling for Dynamic Multi-armed Bandits**
+
+\pagebreak
+
+# Introduction
+
+The Multi-Armed Bandit problem is a problem in reinforcement learning that focuses on how to solve the exploration-exploitation dilemma. Each of the arms has a probability of succeeding which is modelled by a Bernoulli distribution with a parameter $p$. Most of the theory around Multi-Armed Bandits covered in class and its respective implementations assume stationary on the arms, that is, the probability of an arm succeeding does not change through time. However, in most real life settings, this strong assumption is not satisfied [@raj2017taming]. 
+
+For instance, consider the problem deciding which news to put in the front page of a news paper that will capture the attention of as many readers as possible. In order to model the response of the reader to the news shown, one can use a Bernoulli distribution where the $p$ describes the probability that the user clicks on the news link. In the stationary setup, this probability is assumed to be constant, which is unrealistic: there are trends that lead to some articles being more popular during some period and less popular during other times. For instance, during the Eurocup, an article on football can be predicted to have a lot of clicks, however once the Eurocup is over and friendly games take over, an article on football might not be as interesting anymore and thus getting fewer clicks.
+
+To this end, in this experiment we will explore how the cumulative regret changes if non-stationary is taken into account. In particular, we investigate which sampling method is the most efficient one in the non-stationary framework. We review a set of recent papers that have emerged from this line of literature. 
+
+# Methodology
+
+# Results
+
+# Conclusion
+
+\FloatBarrier
+\pagebreak
+
+# References
+
+<div id="refs"></div>
+
+
+

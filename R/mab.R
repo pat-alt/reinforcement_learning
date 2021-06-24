@@ -6,6 +6,7 @@
 #'
 #' @author Patrick Altmeyer
 mab <- function(prob, horizon=1000, method="bernoulli") {
+
   # Parameters: ----
   K <- length(prob)
   v_star <- max(prob)
