@@ -51,12 +51,6 @@ from python.mab import *
 ```
 
 
-
-@raj2017taming - **Taming Non-stationary Bandits: A Bayesian Approach**
-@besbes2014stochastic - **Stochastic multi-armed-bandit problem with non-stationary rewards**
-@gupta2011thompson - **Thompson Sampling for Dynamic Multi-armed Bandits**
-@garivier2008upper - **On upper-confidence bound policies for non-stationary bandit problems**
-
 \pagebreak
 
 # Introduction
@@ -199,11 +193,29 @@ Another popular and simple choice for solving stationary MABs is **Softmax**.
 
 > Ignacio to complete
 
-All of these simple approaches can perform very well in the context of stationary MABs, but cumulative regret is typically a linear function of time. Algorithms that achieve sub-linear regret work under the premise of **optimism in the fact of uncertainty**: they exploit uncertainty in that they typically favour choosing arms that the bandit is uncertain about. The most common approaches are **Upper Confidence Bounds** (UCB) and **Thompson Sampling**. They largely differ in how they estimate uncertainty.
+All of these simple approaches can perform very well in the context of stationary MABs, but cumulative regret is typically a linear function of time. Algorithms that achieve sub-linear regret work under the premise of **optimism in the fact of uncertainty**: they exploit uncertainty in that they typically favour choosing arms that the bandit is uncertain about. The most common approaches are **Upper Confidence Bounds** (UCB) and **Thompson Sampling**. They largely differ in their approach towards quantifying uncertainty.
 
-The UCB can be ... [@sutton2018reinforcement]
+The general UCB rule for choosing arms can be defined as
 
-**Thompson Sampling** has been shown to outperform UCB in the context of stationary multi-armed bandits [@chapelle2011empirical].
+\begin{equation} 
+\begin{aligned}
+&& a_t&=\arg\max_a \left( \hat{q}_t(a)+\hat{U}_t(a) \right) \\
+\end{aligned}
+(\#eq:ucb)
+\end{equation}
+
+where the exact specification of the upper confidence bound $\hat{U}(\cdot)$ is at the researcher's discretion. Typical choices for the functional form of $\hat{U}(\cdot)$ decrease in $t$ and and the number of times $m_t$ that any given arm $a$ has already been observed, for example $\hat{U}_t(\hat{a})=\sqrt{ \frac{2 \log t}{m_t}}$ [@auer2002finite]. Another possible choice derived from Chernoff's bound and used in @chapelle2011empirical is $\hat{U}_t(\hat{a})= \frac{k_t}{m_t} + \sqrt{\frac{2 \frac{k_t}{m_t} \log \frac{1}{\delta}}{m_t}} + \frac{2\log \frac{1}{\delta}}{m_t}$ where $\delta=\sqrt{ \frac{1}{t}}$ and $k_t$ in our context denotes the number of times that any given arm has yielded a reward up until time period $t$.
+
+Thompson Sampling instead takes a Bayesian approach towards quantifying uncertainty and has been shown to outperform UCB in the context of stationary multi-armed bandits [@chapelle2011empirical]. Formally we have for that
+
+\begin{equation} 
+\begin{aligned}
+&& a_t&=\arg\max_a f_{\mathbf{w}}(a), && \mathbf{w}\sim P(\mathbf{w}|\alpha+n_{a,1},\beta+n_{a,0}) \\
+\end{aligned}
+(\#eq:thompson)
+\end{equation}
+
+where $P(\mathbf{w}|\alpha+n_{a,1},\beta+n_{a,0}) =\prod_{k=1}^K \text{Beta}(w_k|\alpha+n_{a,1},\beta+n_{a,0})$, $n_{a,1}$ here denotes the number of times arm $a$ has yielded a reward and $n_{a,0}$ denotes the number of times $a$ failed to yield a reward. The term $f_{\mathbf{w}}(a)$ just corresponds to the posteriour mean and hence the bandit's belief about the action value of arm $a$.
 
 All of these strategies can in principal be used to solve the stationary Bernoulli MAB with the latter typically performing much better than the simple approaches we initially introduced. But it should by now be clear that the assumption of stationarity is crucial for these strategies to work well. Suppose now that instead of each arm having stationary reward probabilities these parameters change over time. In that case we would like to ensure that the bandit always has the capacity to update their beliefs about the action values. In particular, in a non-stationary or piece-wise stationary environment the bandit should be able to pick up on structural changes in the underyling probability distributions. 
 
@@ -214,6 +226,11 @@ knitr::include_graphics("www/posteriour_period_all.png")
 ```
 
 Strategies designed to deal with non-stationary MABs incorporate these ideas. ...
+
+@raj2017taming - **Taming Non-stationary Bandits: A Bayesian Approach**
+@besbes2014stochastic - **Stochastic multi-armed-bandit problem with non-stationary rewards**
+@gupta2011thompson - **Thompson Sampling for Dynamic Multi-armed Bandits**
+@garivier2008upper - **On upper-confidence bound policies for non-stationary bandit problems**
 
 \FloatBarrier
 
