@@ -90,14 +90,60 @@ Before diving into non-stationarity we briefly review a few of the conventional 
 ```{r unique-probs}
 probs <- data.table(py$probs)
 setnames(probs, names(probs), sprintf("arm_%i", 1:ncol(probs)))
+time_passed <- probs[,(max(.I)+1)-min(.I),by=paste(arm_1,arm_2,arm_3)]$V1
 unique_probs <- unique(probs)
 unique_probs[,period:=1:.N]
-setcolorder(unique_probs, "period")
-unique_probs_l <- melt(unique_probs, id.vars = "period")
-my_binom <- function(n,k,p) {
-  choose(n,k) * p^k * (1-p)^(n-k)
-}
+unique_probs[,time_passed:=time_passed]
+setcolorder(unique_probs, c("period","time_passed"))
 
+unique_probs_l <- melt(unique_probs, id.vars = c("period", "time_passed"))
+beta <- function(x, a, b) {
+  numerator <- x^(a-1) * (1-x)^(b-1)
+  gamma_a <- factorial(a-1)
+  gamma_b <- factorial(b-1)
+  gamma_ab <- factorial(a+b-1)
+  denominator <- (gamma_a * gamma_b)/gamma_ab
+  return(numerator/denominator)
+}
+posteriours <- unique_probs_l[
+  ,
+  .(
+    x=seq(0,1,0.01),
+    beta=beta(
+      x=seq(0,1,0.01),
+      a=value*10,
+      b=(1-value)*10
+    )
+  ),
+  by=.(period,variable)
+]
+```
+
+```{r, fig.height=3, fig.width=9}
+ggplot(data=posteriours[period==1], aes(x=x, y=beta, fill=variable, colour=variable)) +
+  geom_area(alpha=0.25, show.legend = FALSE) +
+  facet_grid(
+    cols=vars(variable),
+    rows=vars(period)
+  ) +
+  labs(
+    x="Estimated Action Value",
+    y="Density"
+  ) 
+```
+
+```{r, fig.height=9, fig.width=9}
+ggplot(data=posteriours, aes(x=x, y=beta, fill=variable, colour=variable)) +
+  geom_area(alpha=0.25, show.legend = FALSE) +
+  facet_grid(
+    cols=vars(variable),
+    rows=vars(period)
+  ) +
+  labs(
+    x="Estimated Action Value",
+    y="Density"
+  ) +
+  coord_cartesian(ylim=c(0,5))
 ```
 
 The **Upper Confidence Bound** (UCB) approach to solving the multi-armed bandit problem involves ... [@sutton2018reinforcement]
