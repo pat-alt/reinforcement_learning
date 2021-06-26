@@ -1,0 +1,1 @@
+The idea of softmax is very intuitive. The arm is chosen randomly each period according to a probably distribution. This probabilty distribution gives more weight to arms that have been performing well. In this case we also allow for exploration throughout the periods.
