@@ -56,7 +56,7 @@ def discounted_ucb(alpha,t, k_arms, m, n_1, r_matrix, a_matrix,dis_factor):
 
 # Sliding window: ----
 def sliding_window(alpha,t, k_arms, m, n_1, r_matrix, a_matrix, dis_factor):
-    tau = 16
+    tau = 2000
     if t <= k_arms -1:
         action = t
     else:

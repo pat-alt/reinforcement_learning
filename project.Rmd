@@ -266,9 +266,11 @@ for all other actions. Therefore, as we can see, when sampling the posterior, we
 As stressed in @hartland2006multi empirical evidence shows that UCB's exploration vs exploitation trade off is not appropriate for non-stationary for abruptly changing environments. To address this problem, @garivier2008upper proposes the discounted UCB (DUCB). In order to estimate the expected reward, the DUCB policy averages past rewards with a discount factor giving more weight to recent observations, in line with the approach followed by DTS. This policy constructs an UCB $\bar X_{t}(\gamma,i) + c_{t}(\gamma,i)$ for the expected reward, where the discounted average is given by
 
 $$ \bar X_{t}(\gamma,i) = \frac{1}{N_{t}(\gamma,i)}\sum_{s=1}^{t}\gamma^{t-s}X_{s}(i)\mathbb{I}_{a_{s} = i}$$
+
 where $X_{s}(i)$ is the reward obtained by arm $i$ at timestep $s$, and where
 
 $$ N_{t}(\gamma,i) = \sum_{s=1}^{t}\gamma^{t-s}\mathbb{I}_{a_{s} = i} $$ 
+
 and the discounted padding function is defined as 
 
 $$ c_{t}(\gamma,i) = 2B\sqrt{\frac{\xi log(n_{t})}{N_{t}(\gamma,i)}}$$
@@ -294,6 +296,7 @@ levels(res$algo) <- c(
   "Thompson (discounted)",
   "UCB (discounted)",
   "epsilon-first",
+  "epsilon-greedy",
   "Softmax",
   "Sliding Window",
   "Thompson",
@@ -304,13 +307,13 @@ res[,t := 1:.N, by = algo]
 
 We now move on to comparing the different proposed methodologies. As the testing ground we will use the piece-wise stationary environment that we already introduced in the previous section. 
 
-In Figure \@ref(fig:res) we can observe the performance of the different sampling methods described in the previous sections. The first thing we notice is that the sampling methods that incorporate a discounting factor yield the best performance in the non-stationary setting as expected. As noted above, the introduction of a discount factor implements the premise that realizations that lie far in the past should be weighted less when updated beliefs about action values. Or in other words, recent information has more relevance when estimating the expected reward of any given arm.  Both Discounted UCB and Discounted Thompson appear to quickly pick up on the change in the underlying Bernoulli distribution and therefore acummuluate less regret during these sample periods than conventional UCB and Thompson. 
+In Figure \@ref(fig:res) we can observe the performance of the different sampling methods described in the previous sections. The first thing we notice is that the sampling methods that incorporate a discounting factor yield the best performance in the non-stationary setting as expected. As noted above, the introduction of a discount factor implements the premise that realizations that lie far in the past should be weighted less when updated beliefs about action values. Or in other words, recent information has more relevance when estimating the expected reward of any given arm. Both Discounted UCB and Discounted Thompson appear to quickly pick up on the change in the underlying Bernoulli distribution and therefore acummuluate less regret during these sample periods than conventional UCB and Thompson. The Sliding Window approach is very similar to the discounted UCB approach, which is reflected in its similar performance.
 
-When looking at UCB in particular we can observe that it is the best sampling method in the beginning of the sample. When the first structural change happens, it reacts relatively swiftly but initially incurs a steep increase in cumulative regret. The same is observed for Thompson Sampling, though it is slower to react to the changes and therefore performs worse. In the third period we see something interesting: we can see that UCB is much slower to react to the probability changes. This is likely due to the fact that in this periods all the arms have a similar probability of reward. It therefore takes longer to gain certainty about the action values. Consisttent with that logic, the final change in probabilities clearly favours one particular arm and as consequence even the conventional sampling methods accumulate only little regret.
+When looking at the conventional UCB more closely we can observe that it is overall the best sampling method during the first half of the sample period. When the first structural change happens, it reacts relatively swiftly but initially incurs a steep increase in cumulative regret. The same is observed for Thompson Sampling, though it is slower to react to the changes and therefore performs worse. In the third period we see something interesting: we can see that UCB is much slower to react to the probability changes. This is likely due to the fact that in this periods all the arms have a similar probability of reward. It therefore takes longer to gain certainty about the action values. Consistent with that logic, the final change in probabilities clearly favours one particular arm and as consequence even the conventional sampling methods accumulate only little regret.
 
 As mentioned in previous sections, conventional Thompson sampling tends to perform better than conventional UCB in a stationary setting, but as evident from the results here this is no longer the case in the non-stationary setting. If past beliefs are not discounted, then the Bayesian way for sampling arms does not appear to provide the necessary flexibility to unlearn prior beliefs. On the other hand, our implementation of the UCB adapts much better to changes in the distribution and therefore achieves better cumulative regret in the non-stationary setting.
 
-Finally, both softmax and $\epsilon$-first do very poorly as one might have expected. The latter only explores during the pure exploration phase and is therefore completely insensitive to structural changes that occur during the pure exploitation period. In the case of softmax, we can see that choosing the arm with respect to probabilities that are proportional to the mean rewards also does not achieves a good performance.
+Finally, softmax, $\epsilon$-first and $\epsilon$-greedy do very poorly as one would have expected. In the case of softmax, we can see that choosing the arm with respect to probabilities that are proportional to the mean rewards also does not achieves a good performance. The simple $\epsilon$-first only explores during the pure exploration phase and is therefore completely insensitive to structural changes that occur during the pure exploitation period. Performance for $\epsilon$-greedy is marginally better, likely due to the fact that it randomly explores throughout the entire sample period.
 
 ```{r res, fig.cap="Benchmarking strategies for solving a piece-wise stationary Bernoulli multi-armed bandit.", fig.height=4, fig.width=7}
 p <- ggplot(data = res, aes(x = t, y = cum_regret, colour = algo)) +
