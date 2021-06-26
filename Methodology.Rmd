@@ -1,0 +1,65 @@
+---
+title: "Methodologies"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Strategies designed to deal with non-stationary MABs incorporate these ideas. In particular, these strategies are mainly based on modifications of the aforementioned algorithms. The folloging section discusses these ideas and the given methodology.
+
+
+## Discounted Thompson Sampling {#thom_sam}
+
+We have based the evaluation of the Discounted Thompson Sampling (dTS) on @raj2017taming - **Taming Non-stationary Bandits: A Bayesian Approach**. The key idea of dTS is to systematically increase the variance of the prior distributions mantained for unexplored arms. Formally, we have that 
+
+\begin{equation} 
+\begin{aligned}
+&& a_t&=\arg\max_a f_{\mathbf{w}}(a), && \mathbf{w}\sim P(\mathbf{w}|\alpha+n_{a,1},\beta+n_{a,0}) \\
+\end{aligned}
+(\#eq:thompson)
+\end{equation}
+
+where $P(\mathbf{w}|\alpha+n_{a,1},\beta+n_{a,0}) =\prod_{k=1}^K \text{Beta}(w_k|\alpha+n_{a,1},\beta+n_{a,0})$
+
+like for standard thomspon sampling. The main difference lies in the updating rule for the number of successes and the number of failures. Now, for each iteration we will update these two values in the following way:
+
+$$n_{a^{*},1} \leftarrow \gamma n_{a^{*},1} + r_{t}$$
+
+$$n_{a^{*},0} \leftarrow \gamma n_{a^{*},0} + (1-r_{t})$$
+
+where $a^{*}$ is the action chosen in iteration $t$, $\gamma \in (0,1)$ is a discount factor, and 
+
+$$n_{a,1} \leftarrow \gamma n_{a,1}$$
+
+$$n_{a,0} \leftarrow \gamma n_{a,0}$$
+
+for all other actions. Therefore, as we can see, when sampling the posterior, we know incorporate a discount factor, which implies that observations far away in time have a lower weight than the most recent observations, so dTS works by discounting the effect of past observations. The algorithm updates parameters of all posterior distributions at every timestep. By increasing the variance of all arms, the probability of picking past inferior arms for epxloration increases. However, by keeping the mean almost constant, the algorithm will not pick inferior arms too often. 
+
+## Discounted Upper Confidence Bound
+
+As stressed in @hartland2006multi empirical evidence shows that UCB's exploration vs explotiation trade off is not appropiate for non-stationary for abruptly changing environments. To address this problem, @garivier2008upper proposes the discounted UCB (dUCB). In order to estimate the expected reward, the dUCB policy averages past rewards with a discount factor giving more weight to recent observations, in line with the approach followed by dTS. This policy constructs an UCB $\bar X_{t}(\gamma,i) + c_{t}(\gamma,i)$ for the expected reward, where the discounted average is given by
+
+$$ \bar X_{t}(\gamma,i) = \frac{1}{N_{t}(\gamma,i)}\sum_{s=1}^{t}\gamma^{t-s}X_{s}(i)\mathbb{1}_{a_{s} = i}$$
+where $X_{s}(i)$ is the reward obtained by arm $i$ at timestep $s$, and where
+
+$$ N_{t}(\gamma,i) = \sum_{s=1}^{t}\gamma^{t-s}\mathbb{1}_{a_{s} = i} $$ 
+and the discounted padding function is defined as 
+
+$$ c_{t}(\gamma,i) = 2B\sqrt{\frac{\xi log(n_{t})}{N_{t}(\gamma,i)}}$$
+
+and $n_{t} = \sum_{i=1}^{K}N_{t}(\gamma,i)$. First of all, note that for $\gamma = 1$, you get standard UCB. However, the main contribution of @garivier2008upper is the Sliding-Window UCB. They propose a methodology where instead of averaging the rewards over all past with a discount factor they use a local empirical average of the observed rewards, by using only the $\tau$ last plays. Specifically, this algorithm constructs an UCB $\bar X_{t}(\tau,i) + c_{t}(\tau,i)$ where the local empirical average is given by
+
+
+$$ \bar X_{t}(\tau,i) = \frac{1}{N_{t}(\tau,i)}\sum_{s=t-\tau +1}^{t}\gamma^{t-s}X_{s}(i)\mathbb{1}_{a_{s} = i}$$
+and the padding function is defined as 
+
+$$ c_{t}(\tau,i) = 2B\sqrt{\frac{\xi log(min(t,\tau))}{N_{t}(\gamma,i)}}$$
+
+
+
+
+

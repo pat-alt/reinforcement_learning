@@ -232,14 +232,53 @@ Figure \@ref(fig:period-all) presents a sketch of action value distributions in 
 knitr::include_graphics("www/posteriour_period_all.png")
 ```
 
-Strategies designed to deal with non-stationary MABs incorporate these ideas. ...
+Strategies designed to deal with non-stationary MABs incorporate these ideas. In particular, these strategies are mainly based on modifications of the aforementioned algorithms. The following two subsections discuss two interesting approaches and present the underyling methodology.
 
-> **NOTE**: All to complete
+## Discounted Thompson Sampling {#thom_sam}
 
-@raj2017taming - **Taming Non-stationary Bandits: A Bayesian Approach**
-@besbes2014stochastic - **Stochastic multi-armed-bandit problem with non-stationary rewards**
-@gupta2011thompson - **Thompson Sampling for Dynamic Multi-armed Bandits**
-@garivier2008upper - **On upper-confidence bound policies for non-stationary bandit problems**
+We have based the evaluation of the Discounted Thompson Sampling (DTS) on @raj2017taming. The key idea of DTS is to systematically increase the variance of the prior distributions maintained for unexplored arms. Formally, we have that 
+
+\begin{equation} 
+\begin{aligned}
+&& a_t&=\arg\max_a f_{\mathbf{w}}(a), && \mathbf{w}\sim P(\mathbf{w}|\alpha+n_{a,1},\beta+n_{a,0}) \\
+\end{aligned}
+(\#eq:thompson)
+\end{equation}
+
+where $P(\mathbf{w}|\alpha+n_{a,1},\beta+n_{a,0}) =\prod_{k=1}^K \text{Beta}(w_k|\alpha+n_{a,1},\beta+n_{a,0})$
+
+like for standard Thomspon Sampling. The main difference lies in the updating rule for the number of successes and the number of failures. Now, for each iteration we will update these two values in the following way:
+
+$$n_{a^{*},1} \leftarrow \gamma n_{a^{*},1} + r_{t}$$
+
+$$n_{a^{*},0} \leftarrow \gamma n_{a^{*},0} + (1-r_{t})$$
+
+where $a^{*}$ is the action chosen in iteration $t$, $\gamma \in (0,1)$ is a discount factor, and 
+
+$$n_{a,1} \leftarrow \gamma n_{a,1}$$
+
+$$n_{a,0} \leftarrow \gamma n_{a,0}$$
+
+for all other actions. Therefore, as we can see, when sampling the posterior, we know incorporate a discount factor, which implies that observations far away in time have a lower weight than the most recent observations, so DTS works by discounting the effect of past observations. The algorithm updates parameters of all posterior distributions at every timestep. By increasing the variance of all arms, the probability of picking past inferior arms for exploration increases. However, by keeping the mean almost constant, the algorithm will not pick inferior arms too often. 
+
+## Discounted Upper Confidence Bound
+
+As stressed in @hartland2006multi empirical evidence shows that UCB's exploration vs exploitation trade off is not appropriate for non-stationary for abruptly changing environments. To address this problem, @garivier2008upper proposes the discounted UCB (DUCB). In order to estimate the expected reward, the DUCB policy averages past rewards with a discount factor giving more weight to recent observations, in line with the approach followed by DTS. This policy constructs an UCB $\bar X_{t}(\gamma,i) + c_{t}(\gamma,i)$ for the expected reward, where the discounted average is given by
+
+$$ \bar X_{t}(\gamma,i) = \frac{1}{N_{t}(\gamma,i)}\sum_{s=1}^{t}\gamma^{t-s}X_{s}(i)\mathbb{1}_{a_{s} = i}$$
+where $X_{s}(i)$ is the reward obtained by arm $i$ at timestep $s$, and where
+
+$$ N_{t}(\gamma,i) = \sum_{s=1}^{t}\gamma^{t-s}\mathbb{1}_{a_{s} = i} $$ 
+and the discounted padding function is defined as 
+
+$$ c_{t}(\gamma,i) = 2B\sqrt{\frac{\xi log(n_{t})}{N_{t}(\gamma,i)}}$$
+
+and $n_{t} = \sum_{i=1}^{K}N_{t}(\gamma,i)$. First of all, note that for $\gamma = 1$, you get standard UCB. However, the main contribution of @garivier2008upper is the Sliding-Window UCB. They propose a methodology where instead of averaging the rewards over all past with a discount factor they use a local empirical average of the observed rewards, by using only the $\tau$ last plays. Specifically, this algorithm constructs an UCB $\bar X_{t}(\tau,i) + c_{t}(\tau,i)$ where the local empirical average is given by
+
+$$ \bar X_{t}(\tau,i) = \frac{1}{N_{t}(\tau,i)}\sum_{s=t-\tau +1}^{t}\gamma^{t-s}X_{s}(i)\mathbb{1}_{a_{s} = i}$$
+and the padding function is defined as 
+
+$$c_{t}(\tau,i) = 2B\sqrt{\frac{\xi log(min(t,\tau))}{N_{t}(\gamma,i)}}$$
 
 \FloatBarrier
 
@@ -248,8 +287,6 @@ Strategies designed to deal with non-stationary MABs incorporate these ideas. ..
 ```{r}
 res <- readRDS("results/proj_emp_results.rds")
 ```
-
-We now move on to comparing the different proposed methodologies. As the testing ground we will use the piece-wise stationary environment that we already introduced in the previous section. For reference, Table \@ref(tab:tab) in the appendix summarises how the Bernoulli probability vary across the different time periods.
 
 ```{r}
 res[,algo := as.factor(algo)]
@@ -265,13 +302,15 @@ levels(res$algo) <- c(
 res[,t := 1:.N, by = algo]
 ```
 
-In Figure \@ref(fig:res) we can observe the performance of the different sampling methods described in the previous sections.
-The first thing we notice is that the sampling methods that incorporate a discounting factor yield the best performance in the non-stationary setting as expected. As noted above, the introduction of a discount factor implements the premise that realizations that lie far in the past should be weighted less when updated beliefs about action values. Or in other words, recent information has more relevance when estimating the expected reward of any given arm.  Both Discounted UCB and Discounted Thompson appear to quickly pick up on the change in the underlying Bernoulli distribution and therefore ammuluate less regret during these sample periods than conventional UCB and Thompson. 
-When looking at UCB in particular we can observe that it is the best sampling method in the beginning of the sample. When the first structural change happens, it reacts relatively swiftly but initially incurs a steep increase in cumulative regret. The same is observed for Thompson Sampling, though it is slower to react to the changes and therefore performs worse. In the third period we see something interesting: we can see that UCB is much slower to react to the probability changes. This is likely due to the fact that in this periods all the arms have a similar probability of reward. It therefore takes longer to gain certainty about the action values. Consisitent with that logic, the final change in probabilities clearly favours one particular arm and as consequence even the conventional sampling methods accumulate only little regret.
+We now move on to comparing the different proposed methodologies. As the testing ground we will use the piece-wise stationary environment that we already introduced in the previous section. 
 
-As mentioned in previous sections, Thompson sampling performs better than UCB in a stationaray setting, but as seen in the results it is no longer the case in the non-sataionary setting. The bayesian way for sampling arms does not provied the necessary felxibility to the method in order to correctly identidy and adapt its smapling behaviour to the change in the underlying expected rewards of the differnt arms. On the other hand, the simple and intuitive approch of UCB of considering the upper confiende bound given the current estimate of the variance (driven by the amount of times we have explored the arm) and its estimated expected reward, adapts much better to changes in the distribution and therefore achiveing much bettter cunmmulative regret in the non stationary setting. 
+In Figure \@ref(fig:res) we can observe the performance of the different sampling methods described in the previous sections. The first thing we notice is that the sampling methods that incorporate a discounting factor yield the best performance in the non-stationary setting as expected. As noted above, the introduction of a discount factor implements the premise that realizations that lie far in the past should be weighted less when updated beliefs about action values. Or in other words, recent information has more relevance when estimating the expected reward of any given arm.  Both Discounted UCB and Discounted Thompson appear to quickly pick up on the change in the underlying Bernoulli distribution and therefore acummuluate less regret during these sample periods than conventional UCB and Thompson. 
 
-Finally, both softmax and $\epsilon$-first do very poorly as one might have expected. The latter only explores during the pure exploration phase and is therefore completely insensitive to structural changes that occur during the pure exploitation period. In the case of softmax, we can see that choosing the arm with respect to probilities that are proportional to the mean rewards also does not achieves a good performance.
+When looking at UCB in particular we can observe that it is the best sampling method in the beginning of the sample. When the first structural change happens, it reacts relatively swiftly but initially incurs a steep increase in cumulative regret. The same is observed for Thompson Sampling, though it is slower to react to the changes and therefore performs worse. In the third period we see something interesting: we can see that UCB is much slower to react to the probability changes. This is likely due to the fact that in this periods all the arms have a similar probability of reward. It therefore takes longer to gain certainty about the action values. Consisttent with that logic, the final change in probabilities clearly favours one particular arm and as consequence even the conventional sampling methods accumulate only little regret.
+
+As mentioned in previous sections, conventional Thompson sampling tends to perform better than conventional UCB in a stationary setting, but as evident from the results here this is no longer the case in the non-stationary setting. If past beliefs are not discounted, then the Bayesian way for sampling arms does not appear to provide the necessary flexibility to unlearn prior beliefs. On the other hand, our implementation of the UCB adapts much better to changes in the distribution and therefore achieves better cumulative regret in the non-stationary setting.
+
+Finally, both softmax and $\epsilon$-first do very poorly as one might have expected. The latter only explores during the pure exploration phase and is therefore completely insensitive to structural changes that occur during the pure exploitation period. In the case of softmax, we can see that choosing the arm with respect to probabilities that are proportional to the mean rewards also does not achieves a good performance.
 
 ```{r res, fig.cap="Benchmarking strategies for solving a piece-wise stationary Bernoulli multi-armed bandit.", fig.height=4, fig.width=7}
 p <- ggplot(data = res, aes(x = t, y = cum_regret, colour = algo)) +
@@ -286,13 +325,27 @@ p
 
 \FloatBarrier
 
-```{r, child="discounted_thompson.Rmd"}
+## Discounted Thompson Sampling {#disc}
+
+```{r}
+delta <- 0.995
+n_sim <- 100
 ```
 
 
+Now that we have seen some preliminary evidence in favour of discounted sampling methods for non-stationary multi-armed bandits, in this section we will investigate the empirical performance of discounted Thompson Sampling (DTS) a little further. To this end we have implemented the algorithm in `C++` for greater computational efficiency. 
+
+As a first exercise, we repeatedly apply DTS for subperiods of the sample and inspect the posteriour distributions for the action values. In particular, we train the TDS bandit independently on the first period only ($T_1=`r bounds[1]`$), then until the end of the second period ($T_2=`r bounds[2]`$), then until the end of the third period ($T_3=`r bounds[3]`$) and finally over the entire sample ($T_4=`r bounds[4]`$). We do this `r n_sim` times and each time return the discounted number of successes and failures. Average discounted counts across all `r n_sim` simulations then serve as our input for the Beta distribution, from which we draw repeatedly in order to obtain an empirical distribution for the posterior.
+
+Since DTS has been shown to perform well, we expect that the shapes of the resulting distributions should be broadly consistent with the distributions we sketched above in Figure \@ref(fig:period-all). The results are shown in Figure \@ref(fig:period-ts) in the appendix. Indeed, they look very similar to the sketched distributions which were based on the true underlying Bernoulli probabilities. In other words, the DTS bandit appears to be capable of forming posteriour beliefs that are very much in line with reality, even though after each structural break it first has to unlearn its prior beliefs.
+
+Finally, recall that the discount factor $\gamma$ involved in DTS is a free parameter. To the best of our knowledge, no guiding principles have been proposed in order to choose optimal values, although this would be an interesting theoretical question. Instead, the discount factor needs to be optimized through cross-validation. To this end, Figure \@ref(fig:disc) in the appendix shows how the cumulative regret varies with the discount factor. Upon visual inspection it appears that a value close to $0.997$ is optimal in this particular context. A choice of $1$ corresponds to the non-discounted Thompson Sampler and yield poor results. But performance also tends to decrease for choices lower than $0.997$, demonstrating the need for tuning.
+
 # Conclusion {#dis}
 
+In this short note we have explored how non-stationarity affects the sampling methods seen in class and other popular methods in the literature to choose actions in the context of MABs. We have explored the performance of $\epsilon$-first, $\epsilon$-greedy, softmax, UCB, Sliding Window UCB, Discounted UCB, Thompson Sampling and Discounted Thompson Sampling.
 
+We provide empirical evidence demonstrating that methods that allow to give more relevance to present samples as opposed to samples from far in the past by including a discount factor perform very well in the non-sationary setting. On the other hand, those methods that fail to take non-stationarity into account unsurprisingly yield poor results. Among all sampling methods tested here, the one that achieves the best performance is Discounted Thompson Sampling (DTS). We have illustrated that DTS is capable of learning adequate posterior beliefs about action values even as it involves unlearning prior beliefs. Finally, we have also shown that the choice of the discount factor matters and practitioners should therefore carefully tune it.
 
 \FloatBarrier
 \pagebreak
@@ -301,20 +354,17 @@ p
 
 <div id="refs"></div>
 
-# (APPENDIX) Appendix 
+\FloatBarrier
+\pagebreak
 
-```{r tab}
-knitr::kable(
-  unique_probs,
-  col.names = c(
-    "Period",
-    "T",
-    "Arm 1",
-    "Arm 2",
-    "Arm 3"
-  ),
-  caption = "A piece-wise stationary Bernoulli multi-armed bandit."
-)
+# (APPENDIX) Appendix {-}
+
+# Additional Figures
+
+```{r period-ts, fig.cap="Empirical distribution of estimated action values for different periods and corresponding piece-wise stationary probabilites.", out.width=400}
+knitr::include_graphics("www/posteriour_ts.png")
+```   
+
+```{r disc, fig.cap="The effect of the discount factor on cumulative regret.", out.width=400}
+knitr::include_graphics("www/ts_discount_rate.png")
 ```
-
-
