@@ -69,3 +69,54 @@ ggsave("www/posteriour_ts.png")
 knitr::include_graphics("www/posteriour_ts.png")
 ```
 
+
+```{r, eval=FALSE}
+delta <- seq(0.99,1,by=0.001)
+n_sim <- 10
+probs[,t := NULL] # at time indicator
+prob <- as.matrix(probs)
+set.seed(42)
+nonstationary_mab <- mab(prob)
+unpack(nonstationary_mab)
+regret <- rbindlist(
+  lapply(
+    1:length(delta),
+    function(i) {
+      sim <- sim_thompson_discounted(
+        n = n_sim,
+        horizon = horizon,
+        K = K,
+        prob = prob,
+        discount_factor = delta[i],
+        update_every = 1,
+        method = method,
+        successes_ = NULL,
+        failures_ = NULL
+      )
+      out <- data.table(
+        cum_regret = cumsum(sim$regret),
+        delta = delta[i],
+        t = 1:length(sim$regret)
+      )
+      return(out)
+    }
+  )
+)
+```
+
+```{r, eval=FALSE}
+p <- ggplot(data=regret, aes(x=t, y=cum_regret, colour=factor(delta))) +
+  geom_line() +
+  scale_color_brewer(name="Discount factor:", palette = "RdBu") +
+  labs(
+    x="Time",
+    y="Cumulative Regret"
+  )
+p
+ggsave("www/ts_discount_rate.png")
+```
+
+
+```{r disc, fig.cap="The effect of the discount factor on cumulative regret."}
+knitr::include_graphics("www/ts_discount_rate.png")
+```
