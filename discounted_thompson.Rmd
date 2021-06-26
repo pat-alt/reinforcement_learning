@@ -1,10 +1,18 @@
 ## Discounted Thompson Sampling {#disc}
 
-Now that we have seen some preliminary evidence in favour of discounted Thompson Sampling for non-stationary multi-armed bandits, in this section we will investigate the empirical performance of that algorithm a little further. To this end we have implemented the algorithm in `C++` for greater computational efficiency.
-
-```{r, eval=FALSE}
+```{r}
 delta <- 0.995
 n_sim <- 100
+```
+
+
+Now that we have seen some preliminary evidence in favour of discounted sampling methods for non-stationary multi-armed bandits, in this section we will investigate the empirical performance of discounted Thompson Sampling (DTS) a little further. To this end we have implemented the algorithm in `C++` for greater computational efficiency. 
+
+As a first exercise, we repeatedly apply DTS for subperiods of the sample and inspect the posteriour distributions for the action values. In particular, we train the TDS bandit independently on the first period only ($T_1=`r bounds[1]`$), then until the end of the second period ($T_2=`r bounds[2]`$), then until the end of the third period ($T_3=`r bounds[3]`$) and finally over the entire sample ($T_4=`r bounds[4]`$). We do this `r n_sim` times and each time return the discounted number of successes and failures. Average discounted counts across all `r n_sim` simulations then serve as our input for the Beta distribution, from which we draw repeatedly in order to obtain an empirical distribution for the posterior.
+
+Since DTS has been shown to perform well, we expect that the shapes of the resulting distributions should be broadly consistent with the distributions we sketched above in Figure \@ref(period-all). The results are shown in Figure \@ref(fig:period-ts). Indeed, they look very similar to the sketched distributions which were based on the true underlying Bernoulli probabilities. In other words, the DTS bandit appears to be capable of forming posteriour beliefs that are very much in line with reality, even though after each structural break it first has to unlearn its prior beliefs.
+
+```{r, eval=FALSE}
 probs[,t := .I] # at time indicator
 posteriours <- rbindlist(
   lapply(
@@ -29,7 +37,8 @@ posteriours <- rbindlist(
         arm = 1:length(sim$successes),
         alpha = sim$successes,
         beta = sim$failures,
-        period = i
+        period = i,
+        n = horizon
       )
       return(out)
     }
@@ -69,6 +78,7 @@ ggsave("www/posteriour_ts.png")
 knitr::include_graphics("www/posteriour_ts.png")
 ```
 
+Finally, recall that the discount factor $\gamma$ involved in DTS is a free parameter. To the best of our knowledge, no guiding principles have been proposed in order to choose optimal values, although this would be an interesting theoretical question. Instead, the discount factor needs to be optimized through cross-validation. To this end, Figure \@ref(fig:disc) shows how the cumulative regret varies with the discount factor. Upon visual inspection it appears that a value close to $0.997$ is optimal in this particular context. A choice of $1$ corresponds to the non-discounted Thompson Sampler and yield poor results. But performance also tends to decrease for choices lower than $0.997$, demonstrating the need for tuning.
 
 ```{r, eval=FALSE}
 delta <- seq(0.99,1,by=0.001)

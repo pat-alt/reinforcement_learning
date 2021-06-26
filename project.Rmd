@@ -198,7 +198,7 @@ Another popular and simple choice for solving stationary MABs is **Softmax**.
 (\#eq:softmax)
 \end{equation}
 
-> **NOTE** Ignacio to complete
+The idea of softmax is very intuitive: the arm is chosen each period according to a probably distribution. This probabilty distribution gives more weight to arms that have been performing well. In this case we also allow for exploration throughout the sample.
 
 All of these simple approaches can perform very well in the context of stationary MABs, but cumulative regret is typically a linear function of time. Algorithms that achieve sub-linear regret work under the premise of **optimism in the fact of uncertainty**: they exploit uncertainty in that they typically favour choosing arms that the bandit is uncertain about. The most common approaches are **Upper Confidence Bounds** (UCB) and **Thompson Sampling**. They largely differ in their approach towards quantifying uncertainty.
 
@@ -249,7 +249,7 @@ Strategies designed to deal with non-stationary MABs incorporate these ideas. ..
 res <- readRDS("results/proj_emp_results.rds")
 ```
 
-We now move on to comparing the different proposed methodologies. As the testing ground we will use the piece-wise stationary environment that we already introduced in the previous section. For reference, Table \@ref(tab:tab) summarises how the Bernoulli probability vary across the different time periods.
+We now move on to comparing the different proposed methodologies. As the testing ground we will use the piece-wise stationary environment that we already introduced in the previous section. For reference, Table \@ref(tab:tab) in the appendix summarises how the Bernoulli probability vary across the different time periods.
 
 ```{r}
 res[,algo := as.factor(algo)]
@@ -265,7 +265,13 @@ levels(res$algo) <- c(
 res[,t := 1:.N, by = algo]
 ```
 
-Figure \@ref(fig:res) present the benchmark of the different strategies we introduced above for solving multi-armed bandits. 
+In Figure \@ref(fig:res) we can observe the performance of the different sampling methods described in the previous sections.
+The first thing we notice is that the sampling methods that incorporate a discounting factor yield the best performance in the non-stationary setting as expected. As noted above, the introduction of a discount factor implements the premise that realizations that lie far in the past should be weighted less when updated beliefs about action values. Or in other words, recent information has more relevance when estimating the expected reward of any given arm.  Both Discounted UCB and Discounted Thompson appear to quickly pick up on the change in the underlying Bernoulli distribution and therefore ammuluate less regret during these sample periods than conventional UCB and Thompson. 
+When looking at UCB in particular we can observe that it is the best sampling method in the beginning of the sample. When the first structural change happens, it reacts relatively swiftly but initially incurs a steep increase in cumulative regret. The same is observed for Thompson Sampling, though it is slower to react to the changes and therefore performs worse. In the third period we see something interesting: we can see that UCB is much slower to react to the probability changes. This is likely due to the fact that in this periods all the arms have a similar probability of reward. It therefore takes longer to gain certainty about the action values. Consisitent with that logic, the final change in probabilities clearly favours one particular arm and as consequence even the conventional sampling methods accumulate only little regret.
+
+As mentioned in previous sections, Thompson sampling performs better than UCB in a stationaray setting, but as seen in the results it is no longer the case in the non-sataionary setting. The bayesian way for sampling arms does not provied the necessary felxibility to the method in order to correctly identidy and adapt its smapling behaviour to the change in the underlying expected rewards of the differnt arms. On the other hand, the simple and intuitive approch of UCB of considering the upper confiende bound given the current estimate of the variance (driven by the amount of times we have explored the arm) and its estimated expected reward, adapts much better to changes in the distribution and therefore achiveing much bettter cunmmulative regret in the non stationary setting. 
+
+Finally, both softmax and $\epsilon$-first do very poorly as one might have expected. The latter only explores during the pure exploration phase and is therefore completely insensitive to structural changes that occur during the pure exploitation period. In the case of softmax, we can see that choosing the arm with respect to probilities that are proportional to the mean rewards also does not achieves a good performance.
 
 ```{r res, fig.cap="Benchmarking strategies for solving a piece-wise stationary Bernoulli multi-armed bandit.", fig.height=4, fig.width=7}
 p <- ggplot(data = res, aes(x = t, y = cum_regret, colour = algo)) +
@@ -278,7 +284,24 @@ p <- ggplot(data = res, aes(x = t, y = cum_regret, colour = algo)) +
 p
 ```
 
+\FloatBarrier
 
+```{r, child="discounted_thompson.Rmd"}
+```
+
+
+# Conclusion {#dis}
+
+
+
+\FloatBarrier
+\pagebreak
+
+# References {-}
+
+<div id="refs"></div>
+
+# (APPENDIX) Appendix 
 
 ```{r tab}
 knitr::kable(
@@ -293,21 +316,5 @@ knitr::kable(
   caption = "A piece-wise stationary Bernoulli multi-armed bandit."
 )
 ```
-
-> **NOTE**: All to complete
-
-\FloatBarrier
-
-# Discussion {#dis}
-
-> **NOTE**: All to complete
-
-\FloatBarrier
-\pagebreak
-
-# References {-}
-
-<div id="refs"></div>
-
 
 
