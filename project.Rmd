@@ -33,6 +33,12 @@ library(reticulate)
 library(ggplot2)
 theme_set(theme_bw())
 library(data.table)
+lapply(
+  list.files("R", pattern = "\\.R"),
+  function(file) {
+    source(file = file.path("R",file))
+  }
+)
 ```
 
 ```{python setup-py}
@@ -270,6 +276,13 @@ p <- ggplot(data = res, aes(x = t, y = cum_regret, colour = algo)) +
     y = "Cumulative regret"
   )
 p
+```
+
+```{r}
+nonstationary_mab <- mab(as.matrix(probs))
+set.seed(42)
+fitted <- thompson_Rcpp(nonstationary_mab, discount_factor = 0.995)
+plot(fitted)
 ```
 
 

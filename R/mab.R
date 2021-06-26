@@ -8,8 +8,15 @@
 mab <- function(prob, horizon=1000, method="bernoulli") {
 
   # Parameters: ----
-  K <- length(prob)
-  v_star <- max(prob)
+  stationary_probs <- !(is.matrix(prob) & length(dim(prob)) > 1)
+  if (stationary_probs) {
+    K <- length(prob)
+    v_star <- max(prob)
+  } else {
+    K <- ncol(prob)
+    horizon <- nrow(prob)
+    v_star <- NULL
+  }
 
   # Reward generating function: ----
   if (method=="bernoulli") {
@@ -30,7 +37,8 @@ mab <- function(prob, horizon=1000, method="bernoulli") {
     v_star = v_star,
     K = K,
     horizon = horizon,
-    method = method
+    method = method,
+    stationary_probs = stationary_probs
   )
   class(output) <- "mab"
   return(output)
