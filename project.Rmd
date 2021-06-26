@@ -265,17 +265,17 @@ for all other actions. Therefore, as we can see, when sampling the posterior, we
 
 As stressed in @hartland2006multi empirical evidence shows that UCB's exploration vs exploitation trade off is not appropriate for non-stationary for abruptly changing environments. To address this problem, @garivier2008upper proposes the discounted UCB (DUCB). In order to estimate the expected reward, the DUCB policy averages past rewards with a discount factor giving more weight to recent observations, in line with the approach followed by DTS. This policy constructs an UCB $\bar X_{t}(\gamma,i) + c_{t}(\gamma,i)$ for the expected reward, where the discounted average is given by
 
-$$ \bar X_{t}(\gamma,i) = \frac{1}{N_{t}(\gamma,i)}\sum_{s=1}^{t}\gamma^{t-s}X_{s}(i)\mathbb{1}_{a_{s} = i}$$
+$$ \bar X_{t}(\gamma,i) = \frac{1}{N_{t}(\gamma,i)}\sum_{s=1}^{t}\gamma^{t-s}X_{s}(i)\mathbb{I}_{a_{s} = i}$$
 where $X_{s}(i)$ is the reward obtained by arm $i$ at timestep $s$, and where
 
-$$ N_{t}(\gamma,i) = \sum_{s=1}^{t}\gamma^{t-s}\mathbb{1}_{a_{s} = i} $$ 
+$$ N_{t}(\gamma,i) = \sum_{s=1}^{t}\gamma^{t-s}\mathbb{I}_{a_{s} = i} $$ 
 and the discounted padding function is defined as 
 
 $$ c_{t}(\gamma,i) = 2B\sqrt{\frac{\xi log(n_{t})}{N_{t}(\gamma,i)}}$$
 
 and $n_{t} = \sum_{i=1}^{K}N_{t}(\gamma,i)$. First of all, note that for $\gamma = 1$, you get standard UCB. However, the main contribution of @garivier2008upper is the Sliding-Window UCB. They propose a methodology where instead of averaging the rewards over all past with a discount factor they use a local empirical average of the observed rewards, by using only the $\tau$ last plays. Specifically, this algorithm constructs an UCB $\bar X_{t}(\tau,i) + c_{t}(\tau,i)$ where the local empirical average is given by
 
-$$ \bar X_{t}(\tau,i) = \frac{1}{N_{t}(\tau,i)}\sum_{s=t-\tau +1}^{t}\gamma^{t-s}X_{s}(i)\mathbb{1}_{a_{s} = i}$$
+$$ \bar X_{t}(\tau,i) = \frac{1}{N_{t}(\tau,i)}\sum_{s=t-\tau +1}^{t}\gamma^{t-s}X_{s}(i)\mathbb{I}_{a_{s} = i}$$
 and the padding function is defined as 
 
 $$c_{t}(\tau,i) = 2B\sqrt{\frac{\xi log(min(t,\tau))}{N_{t}(\gamma,i)}}$$
