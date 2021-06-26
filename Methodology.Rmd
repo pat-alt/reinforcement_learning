@@ -9,12 +9,12 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Strategies designed to deal with non-stationary MABs incorporate these ideas. In particular, these strategies are mainly based on modifications of the aforementioned algorithms. The folloging section discusses these ideas and the given methodology.
+Strategies designed to deal with non-stationary MABs incorporate these ideas. In particular, these strategies are mainly based on modifications of the aforementioned algorithms. The following section discusses these ideas and the given methodology.
 
 
 ## Discounted Thompson Sampling {#thom_sam}
 
-We have based the evaluation of the Discounted Thompson Sampling (dTS) on @raj2017taming - **Taming Non-stationary Bandits: A Bayesian Approach**. The key idea of dTS is to systematically increase the variance of the prior distributions mantained for unexplored arms. Formally, we have that 
+We have based the evaluation of the Discounted Thompson Sampling (dTS) on @raj2017taming - **Taming Non-stationary Bandits: A Bayesian Approach**. The key idea of dTS is to systematically increase the variance of the prior distributions maintained for unexplored arms. Formally, we have that 
 
 \begin{equation} 
 \begin{aligned}
@@ -37,11 +37,11 @@ $$n_{a,1} \leftarrow \gamma n_{a,1}$$
 
 $$n_{a,0} \leftarrow \gamma n_{a,0}$$
 
-for all other actions. Therefore, as we can see, when sampling the posterior, we know incorporate a discount factor, which implies that observations far away in time have a lower weight than the most recent observations, so dTS works by discounting the effect of past observations. The algorithm updates parameters of all posterior distributions at every timestep. By increasing the variance of all arms, the probability of picking past inferior arms for epxloration increases. However, by keeping the mean almost constant, the algorithm will not pick inferior arms too often. 
+for all other actions. Therefore, as we can see, when sampling the posterior, we now incorporate a discount factor, which implies that observations far away in time have a lower weight than the most recent observations, so dTS works by discounting the effect of past observations. The algorithm updates parameters of all posterior distributions at every timestep. By increasing the variance of all arms, the probability of picking past inferior arms for exploration increases. However, by keeping the mean almost constant, the algorithm will not pick inferior arms too often. 
 
 ## Discounted Upper Confidence Bound
 
-As stressed in @hartland2006multi empirical evidence shows that UCB's exploration vs explotiation trade off is not appropiate for non-stationary for abruptly changing environments. To address this problem, @garivier2008upper proposes the discounted UCB (dUCB). In order to estimate the expected reward, the dUCB policy averages past rewards with a discount factor giving more weight to recent observations, in line with the approach followed by dTS. This policy constructs an UCB $\bar X_{t}(\gamma,i) + c_{t}(\gamma,i)$ for the expected reward, where the discounted average is given by
+As stressed in @hartland2006multi empirical evidence shows that UCB's exploration vs exploitation trade off is not appropriate for non-stationary for abruptly changing environments. To address this problem, @garivier2008upper proposes the discounted UCB (dUCB). In order to estimate the expected reward, the dUCB policy averages past rewards with a discount factor giving more weight to recent observations, in line with the approach followed by dTS. This policy constructs an UCB $\bar X_{t}(\gamma,i) + c_{t}(\gamma,i)$ for the expected reward, where the discounted average is given by
 
 $$ \bar X_{t}(\gamma,i) = \frac{1}{N_{t}(\gamma,i)}\sum_{s=1}^{t}\gamma^{t-s}X_{s}(i)\mathbb{1}_{a_{s} = i}$$
 where $X_{s}(i)$ is the reward obtained by arm $i$ at timestep $s$, and where
