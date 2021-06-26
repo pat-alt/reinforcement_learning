@@ -110,7 +110,7 @@ List thompson_discounted(
 
 // Function to run simulation:
 // [[Rcpp::export]]
-NumericVector sim_thompson_discounted(
+List sim_thompson_discounted(
     double n,
     int horizon,
     int K,
@@ -122,9 +122,11 @@ NumericVector sim_thompson_discounted(
     Nullable<NumericVector> failures_ = R_NilValue
 ) {
   NumericVector regret (horizon); // allocate memory
+  NumericVector successes (K); // allocate memory
+  NumericVector failures (K); // allocate memory
   double sim_counter=1.0; // counter
   while (sim_counter <= n) {
-    Rcout << sim_counter << "/" << n << "\n";
+    // Rcout << sim_counter << "/" << n << "\n";
     // Run algorithm:
     List policy = thompson_discounted(
       horizon,
@@ -137,10 +139,22 @@ NumericVector sim_thompson_discounted(
       failures_
     );
     NumericVector reg_sim=policy["regret"];
+    NumericVector suc_sim=policy["successes"];
+    NumericVector fail_sim=policy["failures"];
     regret = regret + reg_sim / n; // increment regret
+    successes = successes + suc_sim / n; // increment regret
+    failures = failures + fail_sim / n; // increment regret
     sim_counter++;
   }
-  return(regret);
+
+  // Output
+  List output = List::create(
+    Named("regret") = regret,
+    Named("successes") = successes,
+    Named("failures") = failures
+  );
+
+  return(output);
 }
 
 // You can include R code blocks in C++ files processed with sourceCpp
@@ -160,7 +174,8 @@ prob <- matrix(
 )
 bernoulli_mab <- mab(prob)
 unpack(bernoulli_mab)
-thompson_discounted(
+sim_thompson_discounted(
+  n = 10,
   horizon = horizon,
   K = K,
   prob = prob,
