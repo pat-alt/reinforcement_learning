@@ -33,6 +33,12 @@ library(reticulate)
 library(ggplot2)
 theme_set(theme_bw())
 library(data.table)
+lapply(
+  list.files("R", pattern = "\\.R"),
+  function(file) {
+    source(file = file.path("R",file))
+  }
+)
 ```
 
 ```{python setup-py}

@@ -13,22 +13,38 @@ thompson_Rcpp <- function(
   update_every = 1,
   cpp_fun=thompson,
   successes = NULL,
-  failures = NULL
+  failures = NULL,
+  discount_factor = 1
 ) {
 
   # Parameters: ----
   unpack(mab) # unpack bandit problem
 
   # Execute C++ function: ----
-  output <- cpp_fun(
-    horizon = horizon,
-    v_star = v_star,
-    K = K,
-    prob=prob,
-    update_every = update_every,
-    successes = successes,
-    failures = failures
-  )
+  if (stationary_probs) {
+    output <- cpp_fun(
+      horizon = horizon,
+      v_star = v_star,
+      K = K,
+      prob = prob,
+      update_every = update_every,
+      successes_ = successes,
+      failures_ = failures
+    )
+  } else {
+    ccp_fun <- thompson_discounted
+    output <- ccp_fun(
+      horizon = horizon,
+      K = K,
+      prob = prob,
+      discount_factor = discount_factor,
+      update_every = update_every,
+      method = method,
+      successes_ = successes,
+      failures_ = failures
+    )
+  }
+
 
   # Output: ----
   output[["mab"]] <- mab
